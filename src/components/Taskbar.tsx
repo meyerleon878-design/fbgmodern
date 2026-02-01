@@ -1,0 +1,183 @@
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Power, RefreshCw, LogOut, Folder, Gamepad2, Users, Radar, Search } from 'lucide-react';
+import { WindowState } from '@/types/os';
+
+interface TaskbarProps {
+  windows: WindowState[];
+  onWindowClick: (id: string) => void;
+  onOpenWindow: (id: string, title: string, icon: string, component: string) => void;
+  onLogout: () => void;
+  onRestart: () => void;
+  onShutdown: () => void;
+}
+
+const Taskbar = ({ 
+  windows, 
+  onWindowClick, 
+  onOpenWindow,
+  onLogout,
+  onRestart,
+  onShutdown 
+}: TaskbarProps) => {
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [startMenuOpen, setStartMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const programs = [
+    { id: 'file-explorer', title: 'File Explorer', icon: '📁', component: 'FileExplorer', Icon: Folder },
+    { id: 'minecraft', title: 'Minecraft', icon: '⛏️', component: 'Minecraft', Icon: Gamepad2 },
+    { id: 'subjects', title: 'SUBJECTS', icon: '👤', component: 'Subjects', Icon: Users },
+    { id: 'tracking', title: 'TRACKING', icon: '📡', component: 'Tracking', Icon: Radar },
+  ];
+
+  return (
+    <>
+      {/* Start Menu Overlay */}
+      <AnimatePresence>
+        {startMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50"
+            onClick={() => setStartMenuOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
+              className="absolute bottom-14 left-1/2 -translate-x-1/2 w-[600px] glass window-chrome border-glow overflow-hidden"
+            >
+              {/* Search */}
+              <div className="p-4 border-b border-border">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Search programs..."
+                    className="w-full pl-10 pr-4 py-2 bg-input border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              {/* Programs Grid */}
+              <div className="p-4">
+                <p className="text-xs text-muted-foreground mb-3">PROGRAMS</p>
+                <div className="grid grid-cols-4 gap-2">
+                  {programs.map(program => (
+                    <motion.button
+                      key={program.id}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        onOpenWindow(program.id, program.title, program.icon, program.component);
+                        setStartMenuOpen(false);
+                      }}
+                      className="flex flex-col items-center gap-2 p-3 rounded-lg hover:bg-muted transition-colors"
+                    >
+                      <span className="text-2xl">{program.icon}</span>
+                      <span className="text-xs text-foreground">{program.title}</span>
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Power Options */}
+              <div className="p-4 border-t border-border flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                    <span className="text-primary-foreground text-sm font-bold">F</span>
+                  </div>
+                  <span className="text-sm text-foreground">FBG_ADMIN</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={onLogout}
+                    className="p-2 rounded hover:bg-muted transition-colors"
+                    title="Log Out"
+                  >
+                    <LogOut className="w-5 h-5 text-muted-foreground" />
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={onRestart}
+                    className="p-2 rounded hover:bg-muted transition-colors"
+                    title="Restart"
+                  >
+                    <RefreshCw className="w-5 h-5 text-muted-foreground" />
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={onShutdown}
+                    className="p-2 rounded hover:bg-destructive transition-colors"
+                    title="Shut Down"
+                  >
+                    <Power className="w-5 h-5 text-muted-foreground hover:text-destructive-foreground" />
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Taskbar */}
+      <div className="fixed bottom-0 left-0 right-0 h-12 glass border-t border-border z-40 flex items-center justify-between px-2">
+        {/* Start Button */}
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setStartMenuOpen(!startMenuOpen)}
+          className="p-2 rounded hover:bg-muted transition-colors"
+        >
+          <div className="w-6 h-6 grid grid-cols-2 gap-0.5">
+            <div className="bg-primary rounded-sm" />
+            <div className="bg-primary rounded-sm" />
+            <div className="bg-primary rounded-sm" />
+            <div className="bg-primary rounded-sm" />
+          </div>
+        </motion.button>
+
+        {/* Open Windows */}
+        <div className="flex-1 flex items-center gap-1 px-2 overflow-x-auto">
+          {windows.filter(w => w.isOpen).map(window => (
+            <motion.button
+              key={window.id}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => onWindowClick(window.id)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded transition-colors min-w-0 ${
+                window.isMinimized ? 'bg-muted/50' : 'bg-muted border-b-2 border-primary'
+              }`}
+            >
+              <span className="text-sm">{window.icon}</span>
+              <span className="text-xs text-foreground truncate max-w-24">{window.title}</span>
+            </motion.button>
+          ))}
+        </div>
+
+        {/* System Tray */}
+        <div className="flex items-center gap-4 px-3">
+          <div className="text-xs text-muted-foreground">
+            {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {currentTime.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+export default Taskbar;
