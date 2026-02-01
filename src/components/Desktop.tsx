@@ -6,7 +6,7 @@ import Taskbar from './Taskbar';
 import Window from './Window';
 import { useWindowManager } from '@/hooks/useWindowManager';
 import FileExplorer from './programs/FileExplorer';
-import Minecraft from './programs/Minecraft';
+import Minecraft3D from './programs/Minecraft3D';
 import Subjects from './programs/Subjects';
 import Tracking from './programs/Tracking';
 
@@ -46,7 +46,7 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
       case 'FileExplorer':
         return <FileExplorer />;
       case 'Minecraft':
-        return <Minecraft />;
+        return <Minecraft3D />;
       case 'Subjects':
         return <Subjects />;
       case 'Tracking':
