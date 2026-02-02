@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Power, RefreshCw, LogOut, Folder, Gamepad2, Users, Radar, Search } from 'lucide-react';
+import { Power, RefreshCw, LogOut, Folder, Gamepad2, Users, Radar, Search, Palette, Store, Globe, MessageCircle, Settings } from 'lucide-react';
 import { WindowState } from '@/types/os';
 
 interface TaskbarProps {
@@ -10,6 +10,8 @@ interface TaskbarProps {
   onLogout: () => void;
   onRestart: () => void;
   onShutdown: () => void;
+  onOpenAccountSettings: () => void;
+  installedApps: string[];
 }
 
 const Taskbar = ({ 
@@ -18,7 +20,9 @@ const Taskbar = ({
   onOpenWindow,
   onLogout,
   onRestart,
-  onShutdown 
+  onShutdown,
+  onOpenAccountSettings,
+  installedApps
 }: TaskbarProps) => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [startMenuOpen, setStartMenuOpen] = useState(false);
@@ -28,12 +32,27 @@ const Taskbar = ({
     return () => clearInterval(timer);
   }, []);
 
-  const programs = [
+  const basePrograms = [
     { id: 'file-explorer', title: 'File Explorer', icon: '📁', component: 'FileExplorer', Icon: Folder },
     { id: 'minecraft', title: 'Minecraft', icon: '⛏️', component: 'Minecraft', Icon: Gamepad2 },
     { id: 'subjects', title: 'SUBJECTS', icon: '👤', component: 'Subjects', Icon: Users },
     { id: 'tracking', title: 'TRACKING', icon: '📡', component: 'Tracking', Icon: Radar },
+    { id: 'themes', title: 'Themes', icon: '🎨', component: 'Themes', Icon: Palette },
+    { id: 'store', title: 'Store', icon: '🛒', component: 'Store', Icon: Store },
   ];
+
+  // Add installed apps to programs list
+  const installedPrograms = installedApps.map((appId) => {
+    if (appId === 'rachiro-browser') {
+      return { id: 'rachiro-browser', title: 'Rachiro Browser', icon: '🌐', component: 'RachiroBrowser', Icon: Globe };
+    }
+    if (appId === 'chattigs') {
+      return { id: 'chattigs', title: 'Chattigs', icon: '💬', component: 'Chattigs', Icon: MessageCircle };
+    }
+    return null;
+  }).filter(Boolean) as typeof basePrograms;
+
+  const programs = [...basePrograms, ...installedPrograms];
 
   return (
     <>
@@ -90,12 +109,21 @@ const Taskbar = ({
 
               {/* Power Options */}
               <div className="p-4 border-t border-border flex justify-between items-center">
-                <div className="flex items-center gap-2">
+                <motion.button
+                  whileHover={{ scale: 1.02, backgroundColor: 'hsl(var(--muted))' }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    onOpenAccountSettings();
+                    setStartMenuOpen(false);
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors"
+                >
                   <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
                     <span className="text-primary-foreground text-sm font-bold">F</span>
                   </div>
                   <span className="text-sm text-foreground">FBG_ADMIN</span>
-                </div>
+                  <Settings className="w-4 h-4 text-muted-foreground ml-1" />
+                </motion.button>
                 <div className="flex items-center gap-2">
                   <motion.button
                     whileHover={{ scale: 1.1 }}
