@@ -1,21 +1,9 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { PointerLockControls, Sky, useTexture } from '@react-three/drei';
+import { PointerLockControls, Sky } from '@react-three/drei';
 import * as THREE from 'three';
 import { motion } from 'framer-motion';
 import { Send, Pickaxe } from 'lucide-react';
-
-// Import textures
-import grassTopTex from '@/assets/textures/grass_top.png';
-import grassSideTex from '@/assets/textures/grass_side.png';
-import dirtTex from '@/assets/textures/dirt.png';
-import stoneTex from '@/assets/textures/stone.png';
-import woodTex from '@/assets/textures/wood.png';
-import leavesTex from '@/assets/textures/leaves.png';
-import sandTex from '@/assets/textures/sand.png';
-import cobblestoneTex from '@/assets/textures/cobblestone.png';
-import planksTex from '@/assets/textures/planks.png';
-import bedrockTex from '@/assets/textures/bedrock.png';
 
 // Types
 type BlockType = 'grass' | 'dirt' | 'stone' | 'wood' | 'leaves' | 'sand' | 'cobblestone' | 'planks' | 'bedrock';
@@ -37,94 +25,135 @@ interface Message {
   time: string;
 }
 
-// Texture loader component
-const TexturedBlock = ({ position, type, onMine }: { position: [number, number, number]; type: BlockType; onMine: () => void }) => {
-  const textures = useTexture({
-    grassTop: grassTopTex,
-    grassSide: grassSideTex,
-    dirt: dirtTex,
-    stone: stoneTex,
-    wood: woodTex,
-    leaves: leavesTex,
-    sand: sandTex,
-    cobblestone: cobblestoneTex,
-    planks: planksTex,
-    bedrock: bedrockTex,
-  });
+// Block colors as fallback
+const BLOCK_COLORS: Record<BlockType, string> = {
+  grass: '#4a7c23',
+  dirt: '#8b5a2b',
+  stone: '#808080',
+  wood: '#8b4513',
+  leaves: '#228b22',
+  sand: '#f4d03f',
+  cobblestone: '#6b6b6b',
+  planks: '#deb887',
+  bedrock: '#1a1a1a',
+};
 
-  // Configure textures for pixelated look
-  Object.values(textures).forEach(tex => {
-    tex.magFilter = THREE.NearestFilter;
-    tex.minFilter = THREE.NearestFilter;
-    tex.wrapS = THREE.RepeatWrapping;
-    tex.wrapT = THREE.RepeatWrapping;
-  });
+// Simple colored block component
+const ColoredBlock = ({ position, type, onMine }: { position: [number, number, number]; type: BlockType; onMine: () => void }) => {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const [hovered, setHovered] = useState(false);
 
   const materials = useMemo(() => {
+    const color = BLOCK_COLORS[type];
+    
     if (type === 'grass') {
       return [
-        new THREE.MeshStandardMaterial({ map: textures.grassSide }), // right
-        new THREE.MeshStandardMaterial({ map: textures.grassSide }), // left
-        new THREE.MeshStandardMaterial({ map: textures.grassTop }), // top
-        new THREE.MeshStandardMaterial({ map: textures.dirt }), // bottom
-        new THREE.MeshStandardMaterial({ map: textures.grassSide }), // front
-        new THREE.MeshStandardMaterial({ map: textures.grassSide }), // back
+        new THREE.MeshLambertMaterial({ color: '#4a7c23' }), // right - grass side
+        new THREE.MeshLambertMaterial({ color: '#4a7c23' }), // left
+        new THREE.MeshLambertMaterial({ color: '#228b22' }), // top - grass green
+        new THREE.MeshLambertMaterial({ color: '#8b5a2b' }), // bottom - dirt
+        new THREE.MeshLambertMaterial({ color: '#4a7c23' }), // front
+        new THREE.MeshLambertMaterial({ color: '#4a7c23' }), // back
       ];
     }
     
-    const textureMap: Record<BlockType, THREE.Texture> = {
-      grass: textures.grassTop,
-      dirt: textures.dirt,
-      stone: textures.stone,
-      wood: textures.wood,
-      leaves: textures.leaves,
-      sand: textures.sand,
-      cobblestone: textures.cobblestone,
-      planks: textures.planks,
-      bedrock: textures.bedrock,
-    };
+    if (type === 'wood') {
+      return [
+        new THREE.MeshLambertMaterial({ color: '#8b4513' }),
+        new THREE.MeshLambertMaterial({ color: '#8b4513' }),
+        new THREE.MeshLambertMaterial({ color: '#654321' }), // top - rings
+        new THREE.MeshLambertMaterial({ color: '#654321' }), // bottom - rings
+        new THREE.MeshLambertMaterial({ color: '#8b4513' }),
+        new THREE.MeshLambertMaterial({ color: '#8b4513' }),
+      ];
+    }
     
-    return new THREE.MeshStandardMaterial({ 
-      map: textureMap[type],
+    return new THREE.MeshLambertMaterial({ 
+      color,
       transparent: type === 'leaves',
-      alphaTest: type === 'leaves' ? 0.5 : 0,
+      opacity: type === 'leaves' ? 0.9 : 1,
     });
-  }, [type, textures]);
+  }, [type]);
 
   return (
-    <mesh position={position} onClick={onMine} castShadow receiveShadow>
+    <mesh 
+      ref={meshRef}
+      position={position} 
+      onClick={(e) => {
+        e.stopPropagation();
+        onMine();
+      }}
+      onPointerOver={() => setHovered(true)}
+      onPointerOut={() => setHovered(false)}
+    >
       <boxGeometry args={[1, 1, 1]} />
       {Array.isArray(materials) ? (
         materials.map((mat, i) => <primitive key={i} object={mat} attach={`material-${i}`} />)
       ) : (
         <primitive object={materials} attach="material" />
       )}
+      {hovered && (
+        <lineSegments>
+          <edgesGeometry args={[new THREE.BoxGeometry(1.01, 1.01, 1.01)]} />
+          <lineBasicMaterial color="white" linewidth={2} />
+        </lineSegments>
+      )}
     </mesh>
   );
 };
 
-// Player controller
-const Player = ({ onPlaceBlock }: { onPlaceBlock: (pos: [number, number, number]) => void }) => {
+// Instanced blocks for better performance
+const WorldBlocks = ({ blocks, onMineBlock }: { blocks: Block[]; onMineBlock: (index: number) => void }) => {
+  return (
+    <>
+      {blocks.map((block, index) => (
+        <ColoredBlock
+          key={`${block.position[0]}-${block.position[1]}-${block.position[2]}`}
+          position={block.position}
+          type={block.type}
+          onMine={() => onMineBlock(index)}
+        />
+      ))}
+    </>
+  );
+};
+
+// Player controller - simplified and more stable
+const Player = ({ 
+  onPlaceBlock, 
+  controlsRef 
+}: { 
+  onPlaceBlock: (pos: [number, number, number]) => void;
+  controlsRef: React.MutableRefObject<any>;
+}) => {
   const { camera } = useThree();
   const velocity = useRef(new THREE.Vector3());
-  const direction = useRef(new THREE.Vector3());
-  const moveForward = useRef(false);
-  const moveBackward = useRef(false);
-  const moveLeft = useRef(false);
-  const moveRight = useRef(false);
+  const moveState = useRef({
+    forward: false,
+    backward: false,
+    left: false,
+    right: false,
+  });
   const canJump = useRef(true);
-  const playerY = useRef(5);
+  const isLocked = useRef(false);
+
+  useEffect(() => {
+    camera.position.set(0, 5, 10);
+  }, [camera]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isLocked.current) return;
+      
       switch (e.code) {
-        case 'KeyW': moveForward.current = true; break;
-        case 'KeyS': moveBackward.current = true; break;
-        case 'KeyA': moveLeft.current = true; break;
-        case 'KeyD': moveRight.current = true; break;
+        case 'KeyW': case 'ArrowUp': moveState.current.forward = true; break;
+        case 'KeyS': case 'ArrowDown': moveState.current.backward = true; break;
+        case 'KeyA': case 'ArrowLeft': moveState.current.left = true; break;
+        case 'KeyD': case 'ArrowRight': moveState.current.right = true; break;
         case 'Space':
+          e.preventDefault();
           if (canJump.current) {
-            velocity.current.y = 8;
+            velocity.current.y = 10;
             canJump.current = false;
           }
           break;
@@ -133,96 +162,106 @@ const Player = ({ onPlaceBlock }: { onPlaceBlock: (pos: [number, number, number]
 
     const handleKeyUp = (e: KeyboardEvent) => {
       switch (e.code) {
-        case 'KeyW': moveForward.current = false; break;
-        case 'KeyS': moveBackward.current = false; break;
-        case 'KeyA': moveLeft.current = false; break;
-        case 'KeyD': moveRight.current = false; break;
+        case 'KeyW': case 'ArrowUp': moveState.current.forward = false; break;
+        case 'KeyS': case 'ArrowDown': moveState.current.backward = false; break;
+        case 'KeyA': case 'ArrowLeft': moveState.current.left = false; break;
+        case 'KeyD': case 'ArrowRight': moveState.current.right = false; break;
       }
     };
 
-    const handleClick = (e: MouseEvent) => {
-      if (e.button === 2) { // Right click to place
-        const dir = new THREE.Vector3();
-        camera.getWorldDirection(dir);
-        const placePos: [number, number, number] = [
-          Math.round(camera.position.x + dir.x * 3),
-          Math.round(camera.position.y + dir.y * 3),
-          Math.round(camera.position.z + dir.z * 3),
-        ];
-        onPlaceBlock(placePos);
-      }
+    const handleMouseDown = (e: MouseEvent) => {
+      if (!isLocked.current || e.button !== 2) return;
+      
+      e.preventDefault();
+      const dir = new THREE.Vector3();
+      camera.getWorldDirection(dir);
+      const placePos: [number, number, number] = [
+        Math.round(camera.position.x + dir.x * 4),
+        Math.round(camera.position.y + dir.y * 4),
+        Math.round(camera.position.z + dir.z * 4),
+      ];
+      onPlaceBlock(placePos);
+    };
+
+    const handleLockChange = () => {
+      isLocked.current = document.pointerLockElement !== null;
+    };
+
+    const handleContextMenu = (e: Event) => {
+      e.preventDefault();
     };
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
-    window.addEventListener('mousedown', handleClick);
+    window.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('pointerlockchange', handleLockChange);
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
-      window.removeEventListener('mousedown', handleClick);
+      window.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('pointerlockchange', handleLockChange);
     };
   }, [camera, onPlaceBlock]);
 
   useFrame((_, delta) => {
+    const clampedDelta = Math.min(delta, 0.1);
+    
     // Gravity
-    velocity.current.y -= 20 * delta;
+    velocity.current.y -= 25 * clampedDelta;
     
     // Ground collision
-    if (camera.position.y < 2) {
-      camera.position.y = 2;
+    const groundLevel = 2.5;
+    if (camera.position.y < groundLevel) {
+      camera.position.y = groundLevel;
       velocity.current.y = 0;
       canJump.current = true;
     }
 
     // Movement
-    direction.current.z = Number(moveForward.current) - Number(moveBackward.current);
-    direction.current.x = Number(moveRight.current) - Number(moveLeft.current);
-    direction.current.normalize();
-
-    const speed = 8;
-    if (moveForward.current || moveBackward.current) {
-      velocity.current.z = -direction.current.z * speed;
-    } else {
-      velocity.current.z = 0;
-    }
-    if (moveLeft.current || moveRight.current) {
-      velocity.current.x = -direction.current.x * speed;
-    } else {
-      velocity.current.x = 0;
-    }
-
-    // Apply velocity
+    const speed = 6;
     const forward = new THREE.Vector3();
     camera.getWorldDirection(forward);
     forward.y = 0;
     forward.normalize();
 
     const right = new THREE.Vector3();
-    right.crossVectors(forward, new THREE.Vector3(0, 1, 0));
+    right.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
 
-    camera.position.add(forward.multiplyScalar(velocity.current.z * delta));
-    camera.position.add(right.multiplyScalar(velocity.current.x * delta));
-    camera.position.y += velocity.current.y * delta;
+    const moveX = (moveState.current.right ? 1 : 0) - (moveState.current.left ? 1 : 0);
+    const moveZ = (moveState.current.forward ? 1 : 0) - (moveState.current.backward ? 1 : 0);
+
+    if (moveX !== 0 || moveZ !== 0) {
+      camera.position.add(forward.clone().multiplyScalar(moveZ * speed * clampedDelta));
+      camera.position.add(right.clone().multiplyScalar(moveX * speed * clampedDelta));
+    }
+
+    // Apply vertical velocity
+    camera.position.y += velocity.current.y * clampedDelta;
+
+    // Keep player in bounds
+    camera.position.x = Math.max(-50, Math.min(50, camera.position.x));
+    camera.position.z = Math.max(-50, Math.min(50, camera.position.z));
+    camera.position.y = Math.max(groundLevel, Math.min(50, camera.position.y));
   });
 
   return null;
 };
 
-// World generation
+// World generation - smaller for better performance
 const generateWorld = (): Block[] => {
   const blocks: Block[] = [];
-  const size = 16;
+  const size = 10; // Smaller world for better performance
 
   for (let x = -size; x <= size; x++) {
     for (let z = -size; z <= size; z++) {
       // Bedrock layer
-      blocks.push({ position: [x, -4, z], type: 'bedrock' });
+      blocks.push({ position: [x, -2, z], type: 'bedrock' });
       
-      // Stone layers
-      for (let y = -3; y <= -1; y++) {
-        blocks.push({ position: [x, y, z], type: 'stone' });
-      }
+      // Stone layer
+      blocks.push({ position: [x, -1, z], type: 'stone' });
       
       // Dirt layer
       blocks.push({ position: [x, 0, z], type: 'dirt' });
@@ -234,24 +273,21 @@ const generateWorld = (): Block[] => {
 
   // Add some trees
   const treePositions = [
-    [3, 5], [-5, 3], [8, -4], [-10, 8], [0, -10], [12, 12], [-8, -8]
+    [3, 5], [-5, 3], [7, -4], [-8, 7]
   ];
 
   treePositions.forEach(([tx, tz]) => {
     // Trunk
-    for (let y = 2; y <= 5; y++) {
+    for (let y = 2; y <= 4; y++) {
       blocks.push({ position: [tx, y, tz], type: 'wood' });
     }
-    // Leaves
-    for (let lx = -2; lx <= 2; lx++) {
-      for (let lz = -2; lz <= 2; lz++) {
-        for (let ly = 5; ly <= 7; ly++) {
-          if (Math.abs(lx) + Math.abs(lz) + (ly - 5) < 4) {
-            blocks.push({ position: [tx + lx, ly, tz + lz], type: 'leaves' });
-          }
-        }
+    // Leaves - simple sphere
+    for (let lx = -1; lx <= 1; lx++) {
+      for (let lz = -1; lz <= 1; lz++) {
+        blocks.push({ position: [tx + lx, 5, tz + lz], type: 'leaves' });
       }
     }
+    blocks.push({ position: [tx, 6, tz], type: 'leaves' });
   });
 
   return blocks;
@@ -274,11 +310,10 @@ const Minecraft3D = () => {
   const [selectedSlot, setSelectedSlot] = useState(0);
   const [messages, setMessages] = useState<Message[]>([
     { id: '1', sender: 'SYSTEM', text: 'Welcome to FBG Minecraft 3D!', time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) },
-    { id: '2', sender: 'Steve', text: 'Nice world!', time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) },
   ]);
   const [chatInput, setChatInput] = useState('');
   const [showChat, setShowChat] = useState(true);
-  const [isLocked, setIsLocked] = useState(false);
+  const controlsRef = useRef<any>(null);
 
   useEffect(() => {
     if (gameState === 'playing' && blocks.length === 0) {
@@ -288,10 +323,14 @@ const Minecraft3D = () => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle T and number keys when not typing in chat
+      if (document.activeElement?.tagName === 'INPUT') return;
+      
       if (e.key === 't' || e.key === 'T') {
+        e.preventDefault();
         setShowChat(prev => !prev);
       }
-      if (e.key >= '1' && e.key <= '5') {
+      if (e.key >= '1' && e.key <= '9') {
         setSelectedSlot(parseInt(e.key) - 1);
       }
     };
@@ -308,6 +347,8 @@ const Minecraft3D = () => {
 
   const handleMineBlock = useCallback((index: number) => {
     const block = blocks[index];
+    if (!block) return;
+    
     setBlocks(prev => prev.filter((_, i) => i !== index));
     
     // Add to inventory
@@ -316,7 +357,10 @@ const Minecraft3D = () => {
       if (existing) {
         return prev.map(s => s.type === block.type ? { ...s, count: s.count + 1 } : s);
       }
-      return [...prev.slice(0, 5), { type: block.type, count: 1 }].slice(0, 9);
+      if (prev.length < 9) {
+        return [...prev, { type: block.type, count: 1 }];
+      }
+      return prev;
     });
   }, [blocks]);
 
@@ -331,6 +375,12 @@ const Minecraft3D = () => {
       b.position[2] === position[2]
     );
     if (isOccupied) return;
+
+    // Don't place too close to player
+    if (position[1] >= 2 && position[1] <= 4 && 
+        Math.abs(position[0]) < 2 && Math.abs(position[2]) < 2) {
+      return;
+    }
 
     setBlocks(prev => [...prev, { position, type: selectedItem.type }]);
     setInventory(prev => 
@@ -449,48 +499,42 @@ const Minecraft3D = () => {
 
   // 3D Game
   return (
-    <div className="h-full w-full relative">
+    <div className="h-full w-full relative" onContextMenu={(e) => e.preventDefault()}>
       <Canvas
         shadows
-        camera={{ fov: 75, position: [0, 5, 10] }}
-        onPointerDown={() => setIsLocked(true)}
+        camera={{ fov: 75, near: 0.1, far: 1000 }}
+        gl={{ antialias: true, powerPreference: 'default' }}
       >
         {/* Lighting */}
-        <ambientLight intensity={0.4} />
+        <ambientLight intensity={0.6} />
         <directionalLight
           position={[50, 100, 50]}
-          intensity={1}
+          intensity={0.8}
           castShadow
-          shadow-mapSize={[2048, 2048]}
+          shadow-mapSize={[1024, 1024]}
         />
+        <hemisphereLight args={['#87CEEB', '#3d5c3d', 0.4]} />
 
         {/* Sky */}
         <Sky sunPosition={[100, 50, 100]} />
 
         {/* Fog */}
-        <fog attach="fog" args={['#87CEEB', 50, 200]} />
+        <fog attach="fog" args={['#87CEEB', 30, 100]} />
 
         {/* World Blocks */}
-        {blocks.map((block, index) => (
-          <TexturedBlock
-            key={`${block.position.join(',')}-${index}`}
-            position={block.position}
-            type={block.type}
-            onMine={() => handleMineBlock(index)}
-          />
-        ))}
+        <WorldBlocks blocks={blocks} onMineBlock={handleMineBlock} />
 
         {/* Player Controller */}
-        <Player onPlaceBlock={handlePlaceBlock} />
+        <Player onPlaceBlock={handlePlaceBlock} controlsRef={controlsRef} />
         
         {/* Pointer Lock Controls */}
-        {isLocked && <PointerLockControls />}
+        <PointerLockControls ref={controlsRef} />
       </Canvas>
 
       {/* Crosshair */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10">
-        <div className="w-6 h-0.5 bg-foreground/80" />
-        <div className="w-0.5 h-6 bg-foreground/80 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+        <div className="w-6 h-0.5 bg-white/80" />
+        <div className="w-0.5 h-6 bg-white/80 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
       </div>
 
       {/* Chat */}
@@ -532,10 +576,11 @@ const Minecraft3D = () => {
           >
             {inventory[slot] && (
               <>
-                <div className="text-xs text-foreground capitalize truncate w-full text-center">
-                  {inventory[slot].type.slice(0, 4)}
-                </div>
-                <span className="text-xs text-muted-foreground">{inventory[slot].count}</span>
+                <div 
+                  className="w-6 h-6 rounded"
+                  style={{ backgroundColor: BLOCK_COLORS[inventory[slot].type] }}
+                />
+                <span className="text-xs text-foreground">{inventory[slot].count}</span>
               </>
             )}
           </div>
@@ -543,11 +588,11 @@ const Minecraft3D = () => {
       </div>
 
       {/* Controls hint */}
-      <div className="absolute top-4 left-4 text-xs text-foreground/70 bg-card/60 p-2 rounded z-20">
+      <div className="absolute top-4 left-4 text-xs text-foreground/90 bg-card/80 p-2 rounded z-20">
         <div>WASD - Move | Space - Jump</div>
         <div>Click - Mine | Right Click - Place</div>
         <div>1-9 - Select slot | T - Toggle chat</div>
-        <div>Click to lock mouse</div>
+        <div className="text-primary mt-1">Click anywhere to start</div>
       </div>
     </div>
   );

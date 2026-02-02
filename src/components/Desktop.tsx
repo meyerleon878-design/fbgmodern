@@ -1,14 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import MatrixRain from './MatrixRain';
 import DesktopIcon from './DesktopIcon';
 import Taskbar from './Taskbar';
 import Window from './Window';
 import { useWindowManager } from '@/hooks/useWindowManager';
+import { useTheme } from '@/contexts/ThemeContext';
 import FileExplorer from './programs/FileExplorer';
 import Minecraft3D from './programs/Minecraft3D';
 import Subjects from './programs/Subjects';
 import Tracking from './programs/Tracking';
+import Themes from './programs/Themes';
+import Store from './programs/Store';
+import AccountSettings from './programs/AccountSettings';
+import RachiroBrowser from './programs/RachiroBrowser';
+import Chattigs from './programs/Chattigs';
 
 interface DesktopProps {
   onLogout: () => void;
@@ -16,6 +22,7 @@ interface DesktopProps {
 }
 
 const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
+  const { theme } = useTheme();
   const {
     windows,
     openWindow,
@@ -26,19 +33,50 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
   } = useWindowManager();
 
   const [isRestarting, setIsRestarting] = useState(false);
+  const [installedApps, setInstalledApps] = useState<string[]>(() => {
+    const saved = localStorage.getItem('fbg-installed-apps');
+    return saved ? JSON.parse(saved) : [];
+  });
 
-  const desktopIcons = [
+  useEffect(() => {
+    localStorage.setItem('fbg-installed-apps', JSON.stringify(installedApps));
+  }, [installedApps]);
+
+  const handleInstallApp = (appId: string, name: string, icon: string, component: string) => {
+    setInstalledApps((prev) => [...prev, appId]);
+  };
+
+  const baseDesktopIcons = [
     { id: 'file-explorer', label: 'File Explorer', icon: '📁', component: 'FileExplorer' },
     { id: 'minecraft', label: 'Minecraft', icon: '⛏️', component: 'Minecraft' },
     { id: 'subjects', label: 'SUBJECTS', icon: '👤', component: 'Subjects' },
     { id: 'tracking', label: 'TRACKING', icon: '📡', component: 'Tracking' },
+    { id: 'themes', label: 'Themes', icon: '🎨', component: 'Themes' },
+    { id: 'store', label: 'Store', icon: '🛒', component: 'Store' },
   ];
+
+  // Add installed apps to desktop
+  const installedDesktopIcons = installedApps.map((appId) => {
+    if (appId === 'rachiro-browser') {
+      return { id: 'rachiro-browser', label: 'Rachiro Browser', icon: '🌐', component: 'RachiroBrowser' };
+    }
+    if (appId === 'chattigs') {
+      return { id: 'chattigs', label: 'Chattigs', icon: '💬', component: 'Chattigs' };
+    }
+    return null;
+  }).filter(Boolean) as typeof baseDesktopIcons;
+
+  const desktopIcons = [...baseDesktopIcons, ...installedDesktopIcons];
 
   const handleRestart = () => {
     setIsRestarting(true);
     setTimeout(() => {
       window.location.reload();
     }, 2000);
+  };
+
+  const handleOpenAccountSettings = () => {
+    openWindow('account-settings', 'Account Settings', '⚙️', 'AccountSettings');
   };
 
   const renderWindowContent = (component: string) => {
@@ -51,6 +89,16 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
         return <Subjects />;
       case 'Tracking':
         return <Tracking />;
+      case 'Themes':
+        return <Themes />;
+      case 'Store':
+        return <Store onInstallApp={handleInstallApp} installedApps={installedApps} />;
+      case 'AccountSettings':
+        return <AccountSettings />;
+      case 'RachiroBrowser':
+        return <RachiroBrowser />;
+      case 'Chattigs':
+        return <Chattigs />;
       default:
         return <div className="p-4 text-foreground">Unknown program</div>;
     }
@@ -59,7 +107,7 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
   if (isRestarting) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <MatrixRain />
+        {theme === 'matrix' && <MatrixRain />}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -77,9 +125,9 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background">
-      {/* Matrix Background */}
-      <MatrixRain />
+    <div className={`relative min-h-screen overflow-hidden ${theme === 'windows11' ? 'win11-wallpaper' : 'bg-background'}`}>
+      {/* Matrix Background - only show on Matrix theme */}
+      {theme === 'matrix' && <MatrixRain />}
 
       {/* Desktop Area */}
       <div className="relative z-10 min-h-screen pb-12">
@@ -126,6 +174,8 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
         onLogout={onLogout}
         onRestart={handleRestart}
         onShutdown={onShutdown}
+        onOpenAccountSettings={handleOpenAccountSettings}
+        installedApps={installedApps}
       />
     </div>
   );
