@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-export type ThemeMode = 'matrix' | 'windows11';
+export type ThemeMode = 'matrix' | 'windows11' | 'windows11-dark';
 
 interface ThemeContextType {
   theme: ThemeMode;
@@ -20,13 +20,14 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     
     // Apply theme to document root
     const root = document.documentElement;
+    root.classList.remove('theme-matrix', 'theme-windows11', 'theme-windows11-dark');
     
     if (theme === 'matrix') {
-      root.classList.remove('theme-windows11');
       root.classList.add('theme-matrix');
-    } else {
-      root.classList.remove('theme-matrix');
+    } else if (theme === 'windows11') {
       root.classList.add('theme-windows11');
+    } else {
+      root.classList.add('theme-windows11-dark');
     }
   }, [theme]);
 

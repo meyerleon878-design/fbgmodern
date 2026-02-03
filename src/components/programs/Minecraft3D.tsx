@@ -25,7 +25,7 @@ interface Message {
   time: string;
 }
 
-// Block colors as fallback
+// Block colors
 const BLOCK_COLORS: Record<BlockType, string> = {
   grass: '#4a7c23',
   dirt: '#8b5a2b',
@@ -38,113 +38,75 @@ const BLOCK_COLORS: Record<BlockType, string> = {
   bedrock: '#1a1a1a',
 };
 
-// Simple colored block component
-const ColoredBlock = ({ position, type, onMine }: { position: [number, number, number]; type: BlockType; onMine: () => void }) => {
-  const meshRef = useRef<THREE.Mesh>(null);
+// Single block component
+const Block3D = ({ position, type, onMine }: { position: [number, number, number]; type: BlockType; onMine: () => void }) => {
   const [hovered, setHovered] = useState(false);
-
-  const materials = useMemo(() => {
-    const color = BLOCK_COLORS[type];
-    
-    if (type === 'grass') {
-      return [
-        new THREE.MeshLambertMaterial({ color: '#4a7c23' }), // right - grass side
-        new THREE.MeshLambertMaterial({ color: '#4a7c23' }), // left
-        new THREE.MeshLambertMaterial({ color: '#228b22' }), // top - grass green
-        new THREE.MeshLambertMaterial({ color: '#8b5a2b' }), // bottom - dirt
-        new THREE.MeshLambertMaterial({ color: '#4a7c23' }), // front
-        new THREE.MeshLambertMaterial({ color: '#4a7c23' }), // back
-      ];
-    }
-    
-    if (type === 'wood') {
-      return [
-        new THREE.MeshLambertMaterial({ color: '#8b4513' }),
-        new THREE.MeshLambertMaterial({ color: '#8b4513' }),
-        new THREE.MeshLambertMaterial({ color: '#654321' }), // top - rings
-        new THREE.MeshLambertMaterial({ color: '#654321' }), // bottom - rings
-        new THREE.MeshLambertMaterial({ color: '#8b4513' }),
-        new THREE.MeshLambertMaterial({ color: '#8b4513' }),
-      ];
-    }
-    
-    return new THREE.MeshLambertMaterial({ 
-      color,
-      transparent: type === 'leaves',
-      opacity: type === 'leaves' ? 0.9 : 1,
-    });
+  
+  const color = useMemo(() => {
+    if (type === 'grass') return '#4a7c23';
+    return BLOCK_COLORS[type];
   }, [type]);
 
   return (
     <mesh 
-      ref={meshRef}
       position={position} 
       onClick={(e) => {
         e.stopPropagation();
         onMine();
       }}
-      onPointerOver={() => setHovered(true)}
+      onPointerOver={(e) => {
+        e.stopPropagation();
+        setHovered(true);
+      }}
       onPointerOut={() => setHovered(false)}
     >
       <boxGeometry args={[1, 1, 1]} />
-      {Array.isArray(materials) ? (
-        materials.map((mat, i) => <primitive key={i} object={mat} attach={`material-${i}`} />)
-      ) : (
-        <primitive object={materials} attach="material" />
-      )}
-      {hovered && (
-        <lineSegments>
-          <edgesGeometry args={[new THREE.BoxGeometry(1.01, 1.01, 1.01)]} />
-          <lineBasicMaterial color="white" linewidth={2} />
-        </lineSegments>
-      )}
+      <meshLambertMaterial 
+        color={hovered ? '#ffffff' : color} 
+        transparent={type === 'leaves'}
+        opacity={type === 'leaves' ? 0.85 : 1}
+      />
     </mesh>
   );
 };
 
-// Instanced blocks for better performance
+// Optimized world renderer
 const WorldBlocks = ({ blocks, onMineBlock }: { blocks: Block[]; onMineBlock: (index: number) => void }) => {
   return (
-    <>
+    <group>
       {blocks.map((block, index) => (
-        <ColoredBlock
+        <Block3D
           key={`${block.position[0]}-${block.position[1]}-${block.position[2]}`}
           position={block.position}
           type={block.type}
           onMine={() => onMineBlock(index)}
         />
       ))}
-    </>
+    </group>
   );
 };
 
-// Player controller - simplified and more stable
+// Player controller
 const Player = ({ 
   onPlaceBlock, 
-  controlsRef 
+  blocks 
 }: { 
   onPlaceBlock: (pos: [number, number, number]) => void;
-  controlsRef: React.MutableRefObject<any>;
+  blocks: Block[];
 }) => {
   const { camera } = useThree();
   const velocity = useRef(new THREE.Vector3());
-  const moveState = useRef({
-    forward: false,
-    backward: false,
-    left: false,
-    right: false,
-  });
+  const moveState = useRef({ forward: false, backward: false, left: false, right: false });
   const canJump = useRef(true);
   const isLocked = useRef(false);
 
   useEffect(() => {
-    camera.position.set(0, 5, 10);
+    camera.position.set(0, 8, 15);
   }, [camera]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isLocked.current) return;
-      
       switch (e.code) {
         case 'KeyW': case 'ArrowUp': moveState.current.forward = true; break;
         case 'KeyS': case 'ArrowDown': moveState.current.backward = true; break;
@@ -153,7 +115,7 @@ const Player = ({
         case 'Space':
           e.preventDefault();
           if (canJump.current) {
-            velocity.current.y = 10;
+            velocity.current.y = 8;
             canJump.current = false;
           }
           break;
@@ -171,14 +133,13 @@ const Player = ({
 
     const handleMouseDown = (e: MouseEvent) => {
       if (!isLocked.current || e.button !== 2) return;
-      
       e.preventDefault();
       const dir = new THREE.Vector3();
       camera.getWorldDirection(dir);
       const placePos: [number, number, number] = [
-        Math.round(camera.position.x + dir.x * 4),
-        Math.round(camera.position.y + dir.y * 4),
-        Math.round(camera.position.z + dir.z * 4),
+        Math.round(camera.position.x + dir.x * 3),
+        Math.round(camera.position.y + dir.y * 3),
+        Math.round(camera.position.z + dir.z * 3),
       ];
       onPlaceBlock(placePos);
     };
@@ -187,9 +148,7 @@ const Player = ({
       isLocked.current = document.pointerLockElement !== null;
     };
 
-    const handleContextMenu = (e: Event) => {
-      e.preventDefault();
-    };
+    const handleContextMenu = (e: Event) => e.preventDefault();
 
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
@@ -206,22 +165,30 @@ const Player = ({
     };
   }, [camera, onPlaceBlock]);
 
+  // Simple collision check
+  const checkCollision = useCallback((pos: THREE.Vector3): number => {
+    for (const block of blocks) {
+      const bx = block.position[0];
+      const by = block.position[1];
+      const bz = block.position[2];
+      
+      if (Math.abs(pos.x - bx) < 0.8 && 
+          Math.abs(pos.z - bz) < 0.8 &&
+          pos.y > by && pos.y < by + 2) {
+        return by + 1.8;
+      }
+    }
+    return 2;
+  }, [blocks]);
+
   useFrame((_, delta) => {
-    const clampedDelta = Math.min(delta, 0.1);
+    const d = Math.min(delta, 0.05);
     
     // Gravity
-    velocity.current.y -= 25 * clampedDelta;
+    velocity.current.y -= 20 * d;
     
-    // Ground collision
-    const groundLevel = 2.5;
-    if (camera.position.y < groundLevel) {
-      camera.position.y = groundLevel;
-      velocity.current.y = 0;
-      canJump.current = true;
-    }
-
     // Movement
-    const speed = 6;
+    const speed = 5;
     const forward = new THREE.Vector3();
     camera.getWorldDirection(forward);
     forward.y = 0;
@@ -233,67 +200,58 @@ const Player = ({
     const moveX = (moveState.current.right ? 1 : 0) - (moveState.current.left ? 1 : 0);
     const moveZ = (moveState.current.forward ? 1 : 0) - (moveState.current.backward ? 1 : 0);
 
-    if (moveX !== 0 || moveZ !== 0) {
-      camera.position.add(forward.clone().multiplyScalar(moveZ * speed * clampedDelta));
-      camera.position.add(right.clone().multiplyScalar(moveX * speed * clampedDelta));
+    camera.position.add(forward.clone().multiplyScalar(moveZ * speed * d));
+    camera.position.add(right.clone().multiplyScalar(moveX * speed * d));
+    camera.position.y += velocity.current.y * d;
+
+    // Ground detection
+    const groundLevel = checkCollision(camera.position);
+    if (camera.position.y < groundLevel) {
+      camera.position.y = groundLevel;
+      velocity.current.y = 0;
+      canJump.current = true;
     }
 
-    // Apply vertical velocity
-    camera.position.y += velocity.current.y * clampedDelta;
-
-    // Keep player in bounds
-    camera.position.x = Math.max(-50, Math.min(50, camera.position.x));
-    camera.position.z = Math.max(-50, Math.min(50, camera.position.z));
-    camera.position.y = Math.max(groundLevel, Math.min(50, camera.position.y));
+    // Bounds
+    camera.position.x = Math.max(-30, Math.min(30, camera.position.x));
+    camera.position.z = Math.max(-30, Math.min(30, camera.position.z));
+    camera.position.y = Math.max(2, Math.min(50, camera.position.y));
   });
 
   return null;
 };
 
-// World generation - smaller for better performance
+// World generation
 const generateWorld = (): Block[] => {
   const blocks: Block[] = [];
-  const size = 10; // Smaller world for better performance
+  const size = 8;
 
   for (let x = -size; x <= size; x++) {
     for (let z = -size; z <= size; z++) {
-      // Bedrock layer
-      blocks.push({ position: [x, -2, z], type: 'bedrock' });
-      
-      // Stone layer
-      blocks.push({ position: [x, -1, z], type: 'stone' });
-      
-      // Dirt layer
-      blocks.push({ position: [x, 0, z], type: 'dirt' });
-      
-      // Grass on top
-      blocks.push({ position: [x, 1, z], type: 'grass' });
+      blocks.push({ position: [x, -1, z], type: 'bedrock' });
+      blocks.push({ position: [x, 0, z], type: 'stone' });
+      blocks.push({ position: [x, 1, z], type: 'dirt' });
+      blocks.push({ position: [x, 2, z], type: 'grass' });
     }
   }
 
-  // Add some trees
-  const treePositions = [
-    [3, 5], [-5, 3], [7, -4], [-8, 7]
-  ];
-
-  treePositions.forEach(([tx, tz]) => {
-    // Trunk
-    for (let y = 2; y <= 4; y++) {
+  // Trees
+  [[4, 4], [-5, 3], [6, -5], [-6, -6]].forEach(([tx, tz]) => {
+    for (let y = 3; y <= 5; y++) {
       blocks.push({ position: [tx, y, tz], type: 'wood' });
     }
-    // Leaves - simple sphere
     for (let lx = -1; lx <= 1; lx++) {
       for (let lz = -1; lz <= 1; lz++) {
-        blocks.push({ position: [tx + lx, 5, tz + lz], type: 'leaves' });
+        blocks.push({ position: [tx + lx, 6, tz + lz], type: 'leaves' });
       }
     }
-    blocks.push({ position: [tx, 6, tz], type: 'leaves' });
+    blocks.push({ position: [tx, 7, tz], type: 'leaves' });
   });
 
   return blocks;
 };
 
-// Main Game Component
+// Main component
 const Minecraft3D = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [email, setEmail] = useState('');
@@ -313,7 +271,6 @@ const Minecraft3D = () => {
   ]);
   const [chatInput, setChatInput] = useState('');
   const [showChat, setShowChat] = useState(true);
-  const controlsRef = useRef<any>(null);
 
   useEffect(() => {
     if (gameState === 'playing' && blocks.length === 0) {
@@ -323,9 +280,7 @@ const Minecraft3D = () => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Only handle T and number keys when not typing in chat
       if (document.activeElement?.tagName === 'INPUT') return;
-      
       if (e.key === 't' || e.key === 'T') {
         e.preventDefault();
         setShowChat(prev => !prev);
@@ -340,18 +295,14 @@ const Minecraft3D = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (email && password) {
-      setIsLoggedIn(true);
-    }
+    if (email && password) setIsLoggedIn(true);
   };
 
   const handleMineBlock = useCallback((index: number) => {
     const block = blocks[index];
-    if (!block) return;
+    if (!block || block.type === 'bedrock') return;
     
     setBlocks(prev => prev.filter((_, i) => i !== index));
-    
-    // Add to inventory
     setInventory(prev => {
       const existing = prev.find(s => s.type === block.type);
       if (existing) {
@@ -368,19 +319,12 @@ const Minecraft3D = () => {
     const selectedItem = inventory[selectedSlot];
     if (!selectedItem || selectedItem.count <= 0) return;
 
-    // Check if position is already occupied
     const isOccupied = blocks.some(b => 
       b.position[0] === position[0] && 
       b.position[1] === position[1] && 
       b.position[2] === position[2]
     );
     if (isOccupied) return;
-
-    // Don't place too close to player
-    if (position[1] >= 2 && position[1] <= 4 && 
-        Math.abs(position[0]) < 2 && Math.abs(position[2]) < 2) {
-      return;
-    }
 
     setBlocks(prev => [...prev, { position, type: selectedItem.type }]);
     setInventory(prev => 
@@ -392,7 +336,6 @@ const Minecraft3D = () => {
   const sendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
-
     setMessages(prev => [...prev, {
       id: Date.now().toString(),
       sender: 'You',
@@ -400,11 +343,9 @@ const Minecraft3D = () => {
       time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
     }]);
     setChatInput('');
-
-    // Bot response
     setTimeout(() => {
-      const responses = ['Nice!', 'Cool build!', 'GG!', 'Anyone want to trade?', 'Found diamonds!'];
-      const names = ['Steve', 'Alex', 'Notch', 'Herobrine'];
+      const responses = ['Nice!', 'Cool build!', 'GG!', 'Anyone want to trade?'];
+      const names = ['Steve', 'Alex', 'Notch'];
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         sender: names[Math.floor(Math.random() * names.length)],
@@ -414,7 +355,7 @@ const Minecraft3D = () => {
     }, 1500);
   };
 
-  // Login Screen
+  // Login screen
   if (!isLoggedIn) {
     return (
       <div className="h-full flex items-center justify-center p-8 bg-gradient-to-b from-card to-background">
@@ -427,7 +368,6 @@ const Minecraft3D = () => {
             <Pickaxe className="w-8 h-8 text-primary" />
             <h1 className="text-2xl font-bold text-foreground text-glow">MINECRAFT 3D</h1>
           </div>
-          
           <form onSubmit={handleLogin} className="space-y-4">
             <input
               type="email"
@@ -461,12 +401,6 @@ const Minecraft3D = () => {
   if (gameState === 'menu') {
     return (
       <div className="h-full flex flex-col items-center justify-center p-8 bg-gradient-to-b from-sky-900 to-card relative overflow-hidden">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-1/4 left-1/4 w-16 h-16 bg-primary/30 rotate-45" />
-          <div className="absolute top-1/3 right-1/3 w-12 h-12 bg-primary/20 rotate-12" />
-          <div className="absolute bottom-1/4 left-1/3 w-20 h-20 bg-primary/25 -rotate-12" />
-        </div>
-        
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -474,7 +408,6 @@ const Minecraft3D = () => {
         >
           <h1 className="text-5xl font-bold text-foreground text-glow mb-2 tracking-wider">MINECRAFT</h1>
           <p className="text-muted-foreground mb-8">FBG 3D Edition</p>
-          
           <div className="space-y-3">
             <motion.button
               whileHover={{ scale: 1.05 }}
@@ -483,13 +416,6 @@ const Minecraft3D = () => {
               className="block w-64 py-3 bg-primary text-primary-foreground rounded font-semibold border-glow mx-auto"
             >
               SINGLEPLAYER
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="block w-64 py-3 bg-secondary text-secondary-foreground rounded font-semibold mx-auto"
-            >
-              OPTIONS
             </motion.button>
           </div>
         </motion.div>
@@ -502,46 +428,30 @@ const Minecraft3D = () => {
     <div className="h-full w-full relative" onContextMenu={(e) => e.preventDefault()}>
       <Canvas
         shadows
-        camera={{ fov: 75, near: 0.1, far: 1000 }}
-        gl={{ antialias: true, powerPreference: 'default' }}
+        camera={{ fov: 75, near: 0.1, far: 200 }}
+        gl={{ antialias: false, powerPreference: 'high-performance' }}
       >
-        {/* Lighting */}
-        <ambientLight intensity={0.6} />
-        <directionalLight
-          position={[50, 100, 50]}
-          intensity={0.8}
-          castShadow
-          shadow-mapSize={[1024, 1024]}
-        />
-        <hemisphereLight args={['#87CEEB', '#3d5c3d', 0.4]} />
-
-        {/* Sky */}
+        <ambientLight intensity={0.5} />
+        <directionalLight position={[50, 80, 50]} intensity={0.7} />
+        <hemisphereLight args={['#87CEEB', '#3d5c3d', 0.3]} />
         <Sky sunPosition={[100, 50, 100]} />
-
-        {/* Fog */}
-        <fog attach="fog" args={['#87CEEB', 30, 100]} />
-
-        {/* World Blocks */}
+        <fog attach="fog" args={['#87CEEB', 40, 80]} />
         <WorldBlocks blocks={blocks} onMineBlock={handleMineBlock} />
-
-        {/* Player Controller */}
-        <Player onPlaceBlock={handlePlaceBlock} controlsRef={controlsRef} />
-        
-        {/* Pointer Lock Controls */}
-        <PointerLockControls ref={controlsRef} />
+        <Player onPlaceBlock={handlePlaceBlock} blocks={blocks} />
+        <PointerLockControls />
       </Canvas>
 
       {/* Crosshair */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10">
-        <div className="w-6 h-0.5 bg-white/80" />
-        <div className="w-0.5 h-6 bg-white/80 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+        <div className="w-5 h-0.5 bg-white/80" />
+        <div className="w-0.5 h-5 bg-white/80 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
       </div>
 
       {/* Chat */}
       {showChat && (
-        <div className="absolute bottom-20 left-4 w-72 z-20">
-          <div className="bg-card/80 rounded p-2 max-h-40 overflow-y-auto mb-2">
-            {messages.slice(-8).map(msg => (
+        <div className="absolute bottom-20 left-4 w-64 z-20">
+          <div className="bg-card/80 rounded p-2 max-h-32 overflow-y-auto mb-2">
+            {messages.slice(-6).map(msg => (
               <div key={msg.id} className="text-xs">
                 <span className="text-muted-foreground">[{msg.time}]</span>{' '}
                 <span className="text-primary">&lt;{msg.sender}&gt;</span>{' '}
@@ -570,17 +480,17 @@ const Minecraft3D = () => {
           <div
             key={slot}
             onClick={() => setSelectedSlot(slot)}
-            className={`w-12 h-12 border-2 rounded flex flex-col items-center justify-center cursor-pointer ${
+            className={`w-10 h-10 border-2 rounded flex flex-col items-center justify-center cursor-pointer ${
               selectedSlot === slot ? 'border-primary bg-primary/30' : 'border-border/50 bg-card/80'
             }`}
           >
             {inventory[slot] && (
               <>
                 <div 
-                  className="w-6 h-6 rounded"
+                  className="w-5 h-5 rounded"
                   style={{ backgroundColor: BLOCK_COLORS[inventory[slot].type] }}
                 />
-                <span className="text-xs text-foreground">{inventory[slot].count}</span>
+                <span className="text-[10px] text-foreground">{inventory[slot].count}</span>
               </>
             )}
           </div>
@@ -591,8 +501,8 @@ const Minecraft3D = () => {
       <div className="absolute top-4 left-4 text-xs text-foreground/90 bg-card/80 p-2 rounded z-20">
         <div>WASD - Move | Space - Jump</div>
         <div>Click - Mine | Right Click - Place</div>
-        <div>1-9 - Select slot | T - Toggle chat</div>
-        <div className="text-primary mt-1">Click anywhere to start</div>
+        <div>1-9 - Select slot | T - Chat</div>
+        <div className="text-primary mt-1">Click to start</div>
       </div>
     </div>
   );

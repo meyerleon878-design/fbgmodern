@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Power, RefreshCw, LogOut, Folder, Gamepad2, Users, Radar, Search, Palette, Store, Globe, MessageCircle, Settings } from 'lucide-react';
+import { Power, RefreshCw, LogOut, Folder, Gamepad2, Users, Radar, Search, Palette, Store, Globe, MessageCircle, Settings, Terminal } from 'lucide-react';
 import { WindowState } from '@/types/os';
 
 interface TaskbarProps {
@@ -13,6 +13,12 @@ interface TaskbarProps {
   onOpenAccountSettings: () => void;
   installedApps: string[];
 }
+
+// Taskbar pinned apps (always visible in taskbar)
+const TASKBAR_PINNED = [
+  { id: 'cmd', title: 'CMD', icon: '💻', component: 'CMD', Icon: Terminal },
+  { id: 'lecon-browser', title: 'Lecon Browser', icon: '🌍', component: 'LeconBrowser', Icon: Globe },
+];
 
 const Taskbar = ({ 
   windows, 
@@ -175,6 +181,22 @@ const Taskbar = ({
             <div className="bg-primary rounded-sm" />
           </div>
         </motion.button>
+
+        {/* Pinned Taskbar Apps */}
+        <div className="flex items-center gap-1 px-2 border-r border-border mr-2">
+          {TASKBAR_PINNED.map(app => (
+            <motion.button
+              key={app.id}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => onOpenWindow(app.id, app.title, app.icon, app.component)}
+              className="flex items-center justify-center w-10 h-10 rounded hover:bg-muted transition-colors"
+              title={app.title}
+            >
+              <app.Icon className="w-5 h-5 text-primary" />
+            </motion.button>
+          ))}
+        </div>
 
         {/* Open Windows */}
         <div className="flex-1 flex items-center gap-1 px-2 overflow-x-auto">
