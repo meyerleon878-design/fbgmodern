@@ -15,6 +15,8 @@ import Store from './programs/Store';
 import AccountSettings from './programs/AccountSettings';
 import RachiroBrowser from './programs/RachiroBrowser';
 import Chattigs from './programs/Chattigs';
+import CMD from './programs/CMD';
+import LeconBrowser from './programs/LeconBrowser';
 
 interface DesktopProps {
   onLogout: () => void;
@@ -99,6 +101,10 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
         return <RachiroBrowser />;
       case 'Chattigs':
         return <Chattigs />;
+      case 'CMD':
+        return <CMD />;
+      case 'LeconBrowser':
+        return <LeconBrowser />;
       default:
         return <div className="p-4 text-foreground">Unknown program</div>;
     }
@@ -125,7 +131,7 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
   }
 
   return (
-    <div className={`relative min-h-screen overflow-hidden ${theme === 'windows11' ? 'win11-wallpaper' : 'bg-background'}`}>
+    <div className={`relative min-h-screen overflow-hidden ${theme === 'matrix' ? 'bg-background' : 'win11-wallpaper'}`}>
       {/* Matrix Background - only show on Matrix theme */}
       {theme === 'matrix' && <MatrixRain />}
 

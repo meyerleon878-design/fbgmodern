@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { User, Lock, AlertCircle } from 'lucide-react';
 import MatrixRain from './MatrixRain';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface LoginScreenProps {
   onLogin: () => void;
 }
 
 const LoginScreen = ({ onLogin }: LoginScreenProps) => {
+  const { theme } = useTheme();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -34,10 +36,10 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background">
-      <MatrixRain />
+    <div className={`relative min-h-screen overflow-hidden ${theme === 'matrix' ? 'bg-background' : theme === 'windows11' ? 'win11-wallpaper' : 'bg-background'}`}>
+      {theme === 'matrix' && <MatrixRain />}
       
-      <div className="relative z-10 flex flex-col items-center justify-center min-h-screen scanlines">
+      <div className={`relative z-10 flex flex-col items-center justify-center min-h-screen ${theme === 'matrix' ? 'scanlines' : ''}`}>
         {/* Time Display */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
