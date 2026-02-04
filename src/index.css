@@ -192,6 +192,66 @@
   .theme-windows11 body {
     font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
   }
+
+  /* Windows Vista/7 Aero Theme */
+  .theme-aero2010 {
+    --background: 210 60% 85%;
+    --foreground: 210 30% 15%;
+    
+    --card: 0 0% 100% / 0.75;
+    --card-foreground: 210 30% 15%;
+    
+    --popover: 0 0% 100% / 0.85;
+    --popover-foreground: 210 30% 15%;
+    
+    --primary: 210 80% 45%;
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 210 30% 90%;
+    --secondary-foreground: 210 30% 20%;
+    
+    --muted: 210 20% 92%;
+    --muted-foreground: 210 15% 45%;
+    
+    --accent: 35 100% 50%;
+    --accent-foreground: 0 0% 100%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --border: 210 40% 70%;
+    --input: 0 0% 100% / 0.6;
+    --ring: 210 80% 50%;
+    
+    /* Aero Glass Effect */
+    --glass-bg: 200 40% 95% / 0.65;
+    --glass-border: 0 0% 100% / 0.5;
+    
+    /* Taskbar - translucent dark */
+    --taskbar-bg: 210 40% 20% / 0.85;
+    
+    /* Window Chrome - glass effect */
+    --window-header: 210 50% 95% / 0.9;
+    --window-body: 0 0% 100% / 0.85;
+    
+    /* Sidebar defaults */
+    --sidebar-background: 210 40% 25% / 0.9;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 35 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 50% 40%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 100% / 0.3;
+    --sidebar-ring: 210 80% 50%;
+    
+    /* Theme-specific */
+    --show-matrix-bg: 0;
+    --show-scanlines: 0;
+  }
+
+  .theme-aero2010 body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
 }
 
 @layer base {
@@ -357,5 +417,48 @@
       hsl(260 25% 25%) 60%,
       hsl(280 20% 18%) 100%
     );
+  }
+
+  /* Aero 2010 wallpaper */
+  .aero-wallpaper {
+    background: 
+      radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.3) 0%, transparent 60%),
+      linear-gradient(180deg, 
+        hsl(200 70% 60%) 0%, 
+        hsl(200 60% 45%) 40%,
+        hsl(120 40% 45%) 100%
+      );
+  }
+
+  /* Aero glass styling */
+  .theme-aero2010 .glass {
+    background: linear-gradient(180deg, 
+      rgba(255,255,255,0.8) 0%, 
+      rgba(200,220,255,0.6) 100%
+    );
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.6);
+    box-shadow: 
+      0 0 0 1px rgba(255,255,255,0.3),
+      inset 0 1px 0 rgba(255,255,255,0.8),
+      0 4px 16px rgba(0,0,0,0.15);
+  }
+
+  .theme-aero2010 .window-chrome {
+    background: linear-gradient(180deg, 
+      rgba(220,235,255,0.95) 0%, 
+      rgba(200,220,250,0.9) 100%
+    );
+    border: 1px solid rgba(100,150,200,0.5);
+    box-shadow: 
+      0 0 0 1px rgba(255,255,255,0.4),
+      inset 0 1px 0 rgba(255,255,255,0.9),
+      0 8px 32px rgba(0,0,0,0.2);
+  }
+
+  .theme-aero2010 .border-glow {
+    box-shadow: 
+      0 0 0 1px rgba(255,255,255,0.3),
+      0 4px 12px rgba(0,0,0,0.1);
   }
 }

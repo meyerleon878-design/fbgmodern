@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Monitor, Check, Sun, Moon, Code } from 'lucide-react';
+import { Monitor, Check, Sun, Moon, Code, Sparkles } from 'lucide-react';
 import { useTheme, ThemeMode } from '@/contexts/ThemeContext';
 
 const themes: { id: ThemeMode; name: string; description: string; preview: string; icon: typeof Sun }[] = [
@@ -23,6 +23,13 @@ const themes: { id: ThemeMode; name: string; description: string; preview: strin
     description: 'Dark mode Windows 11 theme for comfortable nighttime use',
     preview: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
     icon: Moon,
+  },
+  {
+    id: 'aero2010',
+    name: '2010 Aero',
+    description: 'Frutiger Aero style inspired by Windows Vista and 7 with glass effects',
+    preview: 'linear-gradient(135deg, #1e5799 0%, #2989d8 50%, #7db9e8 100%)',
+    icon: Sparkles,
   },
 ];
 
