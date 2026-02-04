@@ -20,7 +20,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     
     // Apply theme to document root
     const root = document.documentElement;
-    root.classList.remove('theme-matrix', 'theme-windows11', 'theme-windows11-dark');
+    root.classList.remove('theme-matrix', 'theme-windows11', 'theme-windows11-dark', 'theme-aero2010');
     
     if (theme === 'matrix') {
       root.classList.add('theme-matrix');
