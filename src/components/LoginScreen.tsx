@@ -36,7 +36,13 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
   };
 
   return (
-    <div className={`relative min-h-screen overflow-hidden ${theme === 'matrix' ? 'bg-background' : theme === 'windows11' ? 'win11-wallpaper' : 'bg-background'}`}>
+    <div className={`relative min-h-screen overflow-hidden ${
+      theme === 'matrix' ? 'bg-background' : 
+      theme === 'windows11' ? 'win11-wallpaper' : 
+      theme === 'windows11-dark' ? 'win11-dark-wallpaper' :
+      theme === 'aero2010' ? 'aero-wallpaper' :
+      'bg-background'
+    }`}>
       {theme === 'matrix' && <MatrixRain />}
       
       <div className={`relative z-10 flex flex-col items-center justify-center min-h-screen ${theme === 'matrix' ? 'scanlines' : ''}`}>

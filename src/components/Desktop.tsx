@@ -131,7 +131,13 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
   }
 
   return (
-    <div className={`relative min-h-screen overflow-hidden ${theme === 'matrix' ? 'bg-background' : 'win11-wallpaper'}`}>
+    <div className={`relative min-h-screen overflow-hidden ${
+      theme === 'matrix' ? 'bg-background' : 
+      theme === 'windows11' ? 'win11-wallpaper' : 
+      theme === 'windows11-dark' ? 'win11-dark-wallpaper' :
+      theme === 'aero2010' ? 'aero-wallpaper' :
+      'bg-background'
+    }`}>
       {/* Matrix Background - only show on Matrix theme */}
       {theme === 'matrix' && <MatrixRain />}
 
