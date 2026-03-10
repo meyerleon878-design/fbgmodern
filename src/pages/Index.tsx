@@ -1,13 +1,51 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LoginScreen from '@/components/LoginScreen';
 import Desktop from '@/components/Desktop';
 import MatrixRain from '@/components/MatrixRain';
+import BIOSScreen from '@/components/BIOSScreen';
+import SetupWizard from '@/components/SetupWizard';
+import { useUser } from '@/contexts/UserContext';
 
-type SystemState = 'boot' | 'login' | 'desktop' | 'shutdown';
+type SystemState = 'boot' | 'bios' | 'setup' | 'login' | 'desktop' | 'shutdown';
 
 const Index = () => {
+  const { user, clearUser, isSetupComplete } = useUser();
   const [systemState, setSystemState] = useState<SystemState>('boot');
+  const [f2Pressed, setF2Pressed] = useState(false);
+
+  // F2 listener during boot
+  useEffect(() => {
+    if (systemState !== 'boot') return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'F2') {
+        e.preventDefault();
+        setF2Pressed(true);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [systemState]);
+
+  // Boot sequence - check for F2 or go to login/setup
+  useEffect(() => {
+    if (systemState !== 'boot') return;
+    const timer = setTimeout(() => {
+      if (f2Pressed) {
+        setSystemState('bios');
+      } else if (!isSetupComplete) {
+        setSystemState('setup');
+      } else {
+        setSystemState('login');
+      }
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [systemState, f2Pressed, isSetupComplete]);
+
+  const handleFactoryReset = () => {
+    clearUser();
+    setSystemState('setup');
+  };
 
   // Boot sequence
   if (systemState === 'boot') {
@@ -16,9 +54,6 @@ const Index = () => {
         className="min-h-screen bg-background flex flex-col items-center justify-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        onAnimationComplete={() => {
-          setTimeout(() => setSystemState('login'), 2000);
-        }}
       >
         <MatrixRain />
         <div className="relative z-10 text-center">
@@ -29,33 +64,36 @@ const Index = () => {
             className="mb-6"
           >
             <div className="text-6xl mb-4">🖥️</div>
-            <h1 className="text-3xl font-bold text-foreground text-glow mb-2">
-              FBG_OS
-            </h1>
+            <h1 className="text-3xl font-bold text-foreground text-glow mb-2">FBG_OS</h1>
             <p className="text-muted-foreground">Matrix Edition v11.0</p>
           </motion.div>
-          
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: 200 }}
             transition={{ duration: 1.5, delay: 0.5 }}
             className="h-1 bg-primary rounded-full mx-auto"
           />
-          
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 1 }}
+            transition={{ delay: 0.5 }}
             className="mt-4 text-sm text-muted-foreground"
           >
-            Initializing system...
+            {f2Pressed ? 'Entering BIOS Setup...' : 'Press F2 repeatedly to enter BIOS'}
           </motion.p>
         </div>
       </motion.div>
     );
   }
 
-  // Shutdown screen
+  if (systemState === 'bios') {
+    return <BIOSScreen onExit={() => setSystemState(isSetupComplete ? 'login' : 'setup')} onFactoryReset={handleFactoryReset} />;
+  }
+
+  if (systemState === 'setup') {
+    return <SetupWizard onComplete={() => setSystemState('login')} />;
+  }
+
   if (systemState === 'shutdown') {
     return (
       <motion.div
@@ -81,27 +119,13 @@ const Index = () => {
   return (
     <AnimatePresence mode="wait">
       {systemState === 'login' && (
-        <motion.div
-          key="login"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-        >
+        <motion.div key="login" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
           <LoginScreen onLogin={() => setSystemState('desktop')} />
         </motion.div>
       )}
-
       {systemState === 'desktop' && (
-        <motion.div
-          key="desktop"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-        >
-          <Desktop
-            onLogout={() => setSystemState('login')}
-            onShutdown={() => setSystemState('shutdown')}
-          />
+        <motion.div key="desktop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <Desktop onLogout={() => setSystemState('login')} onShutdown={() => setSystemState('shutdown')} />
         </motion.div>
       )}
     </AnimatePresence>
