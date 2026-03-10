@@ -31,6 +31,7 @@ const Taskbar = ({
   onOpenAccountSettings,
   installedApps
 }: TaskbarProps) => {
+  const { user } = useUser();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [startMenuOpen, setStartMenuOpen] = useState(false);
 
