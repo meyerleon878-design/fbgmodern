@@ -15,7 +15,7 @@ interface App {
 }
 
 interface StoreProps {
-  onInstallApp: (appId: string, name: string, icon: string, component: string) => void;
+  onInstallApp: (appId: string) => void;
   installedApps: string[];
 }
 
