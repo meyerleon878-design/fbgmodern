@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Power, RefreshCw, LogOut, Folder, Gamepad2, Users, Radar, Search, Palette, Store, Globe, MessageCircle, Settings, Terminal } from 'lucide-react';
 import { WindowState } from '@/types/os';
+import { useUser } from '@/contexts/UserContext';
 
 interface TaskbarProps {
   windows: WindowState[];
@@ -30,6 +31,7 @@ const Taskbar = ({
   onOpenAccountSettings,
   installedApps
 }: TaskbarProps) => {
+  const { user } = useUser();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [startMenuOpen, setStartMenuOpen] = useState(false);
 
@@ -127,7 +129,7 @@ const Taskbar = ({
                   <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
                     <span className="text-primary-foreground text-sm font-bold">F</span>
                   </div>
-                  <span className="text-sm text-foreground">FBG_ADMIN</span>
+                  <span className="text-sm text-foreground">{user?.displayName || user?.username || 'FBG_ADMIN'}</span>
                   <Settings className="w-4 h-4 text-muted-foreground ml-1" />
                 </motion.button>
                 <div className="flex items-center gap-2">

@@ -15,7 +15,7 @@ interface App {
 }
 
 interface StoreProps {
-  onInstallApp: (appId: string, name: string, icon: string, component: string) => void;
+  onInstallApp: (appId: string) => void;
   installedApps: string[];
 }
 
@@ -413,7 +413,7 @@ const Store = ({ onInstallApp, installedApps }: StoreProps) => {
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => !isInstalled && onInstallApp(app.id, app.name, app.icon, app.component)}
+                        onClick={() => !isInstalled && onInstallApp(app.id)}
                         disabled={isInstalled}
                         className={`px-3 py-1 rounded-lg text-xs font-medium flex items-center gap-1 flex-shrink-0 ${
                           isInstalled
