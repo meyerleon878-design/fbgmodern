@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import MatrixRain from './MatrixRain';
 import DesktopIcon from './DesktopIcon';
@@ -42,10 +42,19 @@ import CompassApp from './programs/CompassApp';
 import MovieDB from './programs/MovieDB';
 import RadioApp from './programs/RadioApp';
 import PodcastHub from './programs/PodcastHub';
+import SystemSettings from './programs/SystemSettings';
 
 interface DesktopProps {
   onLogout: () => void;
   onShutdown: () => void;
+}
+
+interface DesktopItem {
+  id: string;
+  label: string;
+  icon: string;
+  type: 'app' | 'folder' | 'file';
+  component?: string;
 }
 
 const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
@@ -60,10 +69,20 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
     const saved = localStorage.getItem('fbg-installed-apps');
     return saved ? JSON.parse(saved) : [];
   });
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const [desktopItems, setDesktopItems] = useState<DesktopItem[]>(() => {
+    const saved = localStorage.getItem('fbg-desktop-items');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const desktopRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     localStorage.setItem('fbg-installed-apps', JSON.stringify(installedApps));
   }, [installedApps]);
+
+  useEffect(() => {
+    localStorage.setItem('fbg-desktop-items', JSON.stringify(desktopItems));
+  }, [desktopItems]);
 
   const handleInstallApp = (appId: string) => {
     setInstalledApps((prev) => [...prev, appId]);
@@ -77,6 +96,7 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
     { id: 'themes', label: 'Themes', icon: '🎨', component: 'Themes' },
     { id: 'store', label: 'Store', icon: '🛒', component: 'Store' },
     { id: 'cmd', label: 'CMD', icon: '💻', component: 'CMD' },
+    { id: 'settings', label: 'Settings', icon: '⚙️', component: 'SystemSettings' },
   ];
 
   const appIconMap: Record<string, { label: string; icon: string; component: string }> = {
@@ -112,7 +132,7 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
     .map(appId => appIconMap[appId] ? { id: appId, ...appIconMap[appId] } : null)
     .filter(Boolean) as typeof baseDesktopIcons;
 
-  const desktopIcons = [...baseDesktopIcons, ...installedDesktopIcons];
+  const allDesktopIcons = [...baseDesktopIcons, ...installedDesktopIcons];
 
   const handleRestart = () => {
     setIsRestarting(true);
@@ -121,6 +141,33 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
 
   const handleOpenAccountSettings = () => {
     openWindow('account-settings', 'Account Settings', '⚙️', 'AccountSettings');
+  };
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleCreateFolder = () => {
+    const name = prompt('Folder name:') || 'New Folder';
+    setDesktopItems(prev => [...prev, { id: `folder-${Date.now()}`, label: name, icon: '📁', type: 'folder' }]);
+    setContextMenu(null);
+  };
+
+  const handleCreateTextFile = () => {
+    const name = prompt('File name:') || 'New Document';
+    setDesktopItems(prev => [...prev, { id: `file-${Date.now()}`, label: name + '.txt', icon: '📄', type: 'file' }]);
+    setContextMenu(null);
+  };
+
+  const handleOpenPersonalize = () => {
+    openWindow('themes', 'Personalize', '🎨', 'Themes');
+    setContextMenu(null);
+  };
+
+  const handleOpenSettings = () => {
+    openWindow('settings', 'Settings', '⚙️', 'SystemSettings');
+    setContextMenu(null);
   };
 
   const renderWindowContent = (component: string) => {
@@ -160,8 +207,29 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
       case 'MovieDB': return <MovieDB />;
       case 'RadioApp': return <RadioApp />;
       case 'PodcastHub': return <PodcastHub />;
+      case 'SystemSettings': return <SystemSettings />;
       default: return <div className="p-4 text-foreground">Unknown program</div>;
     }
+  };
+
+  const getWallpaperClass = () => {
+    const wallpapers: Record<string, string> = {
+      matrix: 'bg-background',
+      windows11: 'win11-wallpaper',
+      'windows11-dark': 'win11-dark-wallpaper',
+      aero2010: 'aero-wallpaper',
+      cyberpunk: 'cyberpunk-wallpaper',
+      nord: 'nord-wallpaper',
+      dracula: 'dracula-wallpaper',
+      solarized: 'solarized-wallpaper',
+      monokai: 'monokai-wallpaper',
+      rosepine: 'rosepine-wallpaper',
+      sunset: 'sunset-wallpaper',
+      ocean: 'ocean-wallpaper',
+      forest: 'forest-wallpaper',
+      retro: 'retro-wallpaper',
+    };
+    return wallpapers[theme] || 'bg-background';
   };
 
   if (isRestarting) {
@@ -177,30 +245,82 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
   }
 
   return (
-    <div className={`relative min-h-screen overflow-hidden ${
-      theme === 'matrix' ? 'bg-background' : 
-      theme === 'windows11' ? 'win11-wallpaper' : 
-      theme === 'windows11-dark' ? 'win11-dark-wallpaper' :
-      theme === 'aero2010' ? 'aero-wallpaper' :
-      'bg-background'
-    }`}>
+    <div className={`relative min-h-screen overflow-hidden ${getWallpaperClass()}`}>
       {theme === 'matrix' && <MatrixRain />}
-      <div className="relative z-10 min-h-screen pb-12">
-        <div className="p-4 grid grid-cols-1 gap-2 w-fit">
-          {desktopIcons.map((icon, index) => (
-            <motion.div key={icon.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}>
+      
+      {/* Desktop area - stops before taskbar */}
+      <div
+        ref={desktopRef}
+        className="relative z-10 pb-14 overflow-hidden"
+        style={{ height: 'calc(100vh - 48px)' }}
+        onContextMenu={handleContextMenu}
+        onClick={() => setContextMenu(null)}
+      >
+        <div className="p-4 h-full flex flex-col flex-wrap gap-1 content-start">
+          {allDesktopIcons.map((icon, index) => (
+            <motion.div key={icon.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
               <DesktopIcon icon={icon.icon} label={icon.label} onClick={() => openWindow(icon.id, icon.label, icon.icon, icon.component)} />
             </motion.div>
           ))}
-        </div>
-        <AnimatePresence>
-          {windows.map(window => (
-            <Window key={window.id} window={window} onClose={() => closeWindow(window.id)} onMinimize={() => minimizeWindow(window.id)} onMaximize={() => maximizeWindow(window.id)} onFocus={() => focusWindow(window.id)}>
-              {renderWindowContent(window.component)}
-            </Window>
+          {/* User-created desktop items */}
+          {desktopItems.map((item) => (
+            <DesktopIcon
+              key={item.id}
+              icon={item.icon}
+              label={item.label}
+              onClick={() => {
+                if (item.type === 'folder') {
+                  openWindow(item.id, item.label, '📁', 'FileExplorer');
+                } else if (item.type === 'file') {
+                  openWindow(item.id, item.label, '📄', 'NotepadPlus');
+                }
+              }}
+            />
           ))}
-        </AnimatePresence>
+        </div>
       </div>
+
+      {/* Context Menu */}
+      <AnimatePresence>
+        {contextMenu && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed z-[60] glass window-chrome border border-border rounded-lg py-1 min-w-[200px] shadow-lg"
+            style={{ left: contextMenu.x, top: contextMenu.y }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button onClick={handleCreateFolder} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-2">
+              📁 New Folder
+            </button>
+            <button onClick={handleCreateTextFile} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-2">
+              📄 New Text Document
+            </button>
+            <div className="border-t border-border my-1" />
+            <button onClick={handleOpenPersonalize} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-2">
+              🎨 Personalize
+            </button>
+            <button onClick={handleOpenSettings} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-2">
+              ⚙️ Settings
+            </button>
+            <div className="border-t border-border my-1" />
+            <button onClick={() => { window.location.reload(); }} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-2">
+              🔄 Refresh Desktop
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Windows */}
+      <AnimatePresence>
+        {windows.map(window => (
+          <Window key={window.id} window={window} onClose={() => closeWindow(window.id)} onMinimize={() => minimizeWindow(window.id)} onMaximize={() => maximizeWindow(window.id)} onFocus={() => focusWindow(window.id)}>
+            {renderWindowContent(window.component)}
+          </Window>
+        ))}
+      </AnimatePresence>
+
       <Taskbar windows={windows} onWindowClick={focusWindow} onOpenWindow={openWindow} onLogout={onLogout} onRestart={handleRestart} onShutdown={onShutdown} onOpenAccountSettings={handleOpenAccountSettings} installedApps={installedApps} />
     </div>
   );

@@ -1,6 +1,9 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-export type ThemeMode = 'matrix' | 'windows11' | 'windows11-dark' | 'aero2010';
+export type ThemeMode = 
+  | 'matrix' | 'windows11' | 'windows11-dark' | 'aero2010'
+  | 'cyberpunk' | 'nord' | 'dracula' | 'solarized' | 'monokai'
+  | 'rosepine' | 'sunset' | 'ocean' | 'forest' | 'retro';
 
 interface ThemeContextType {
   theme: ThemeMode;
@@ -17,20 +20,14 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     localStorage.setItem('fbg-theme', theme);
-    
-    // Apply theme to document root
     const root = document.documentElement;
-    root.classList.remove('theme-matrix', 'theme-windows11', 'theme-windows11-dark', 'theme-aero2010');
-    
-    if (theme === 'matrix') {
-      root.classList.add('theme-matrix');
-    } else if (theme === 'windows11') {
-      root.classList.add('theme-windows11');
-    } else if (theme === 'windows11-dark') {
-      root.classList.add('theme-windows11-dark');
-    } else if (theme === 'aero2010') {
-      root.classList.add('theme-aero2010');
-    }
+    const allThemes = [
+      'theme-matrix', 'theme-windows11', 'theme-windows11-dark', 'theme-aero2010',
+      'theme-cyberpunk', 'theme-nord', 'theme-dracula', 'theme-solarized', 'theme-monokai',
+      'theme-rosepine', 'theme-sunset', 'theme-ocean', 'theme-forest', 'theme-retro',
+    ];
+    root.classList.remove(...allThemes);
+    root.classList.add(`theme-${theme}`);
   }, [theme]);
 
   return (
@@ -42,8 +39,6 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
 export const useTheme = () => {
   const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
+  if (!context) throw new Error('useTheme must be used within a ThemeProvider');
   return context;
 };
