@@ -47,6 +47,7 @@ const Taskbar = ({
     { id: 'tracking', title: 'TRACKING', icon: '📡', component: 'Tracking', Icon: Radar },
     { id: 'themes', title: 'Themes', icon: '🎨', component: 'Themes', Icon: Palette },
     { id: 'store', title: 'Store', icon: '🛒', component: 'Store', Icon: Store },
+    { id: 'settings', title: 'Settings', icon: '⚙️', component: 'SystemSettings', Icon: Settings },
   ];
 
   // Add installed apps to programs list
