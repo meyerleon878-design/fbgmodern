@@ -692,8 +692,22 @@
     font-family: 'JetBrains Mono', monospace;
   }
 
-  .theme-windows11 body {
+  .theme-windows11 body,
+  .theme-windows11-dark body,
+  .theme-aero2010 body,
+  .theme-cyberpunk body,
+  .theme-nord body,
+  .theme-dracula body,
+  .theme-solarized body,
+  .theme-monokai body,
+  .theme-rosepine body,
+  .theme-sunset body,
+  .theme-ocean body,
+  .theme-forest body {
     font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  .theme-retro body {
+    font-family: 'JetBrains Mono', monospace;
   }
 }
 
