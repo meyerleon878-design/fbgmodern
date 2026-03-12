@@ -43,6 +43,9 @@ import MovieDB from './programs/MovieDB';
 import RadioApp from './programs/RadioApp';
 import PodcastHub from './programs/PodcastHub';
 import SystemSettings from './programs/SystemSettings';
+import ForceApp from './programs/ForceApp';
+import DebugCMD from './programs/DebugCMD';
+import DeveloperSettings from './programs/DeveloperSettings';
 
 interface DesktopProps {
   onLogout: () => void;
@@ -55,6 +58,8 @@ interface DesktopItem {
   icon: string;
   type: 'app' | 'folder' | 'file';
   component?: string;
+  content?: string;
+  children?: string[]; // IDs of items inside folders
 }
 
 const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
@@ -64,17 +69,25 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
     windows, openWindow, closeWindow, minimizeWindow, maximizeWindow, focusWindow,
   } = useWindowManager();
 
+  const isDeveloper = user?.isDeveloper === true;
+
   const [isRestarting, setIsRestarting] = useState(false);
   const [installedApps, setInstalledApps] = useState<string[]>(() => {
     const saved = localStorage.getItem('fbg-installed-apps');
     return saved ? JSON.parse(saved) : [];
   });
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; targetId?: string } | null>(null);
   const [desktopItems, setDesktopItems] = useState<DesktopItem[]>(() => {
     const saved = localStorage.getItem('fbg-desktop-items');
     return saved ? JSON.parse(saved) : [];
   });
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
+  const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
   const desktopRef = useRef<HTMLDivElement>(null);
+
+  // For opening txt files with content
+  const [openFileContents, setOpenFileContents] = useState<Record<string, string>>({});
 
   useEffect(() => {
     localStorage.setItem('fbg-installed-apps', JSON.stringify(installedApps));
@@ -88,7 +101,13 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
     setInstalledApps((prev) => [...prev, appId]);
   };
 
-  const baseDesktopIcons = [
+  const devDesktopIcons = [
+    { id: 'dev-settings', label: 'Developer Settings', icon: '🛠️', component: 'DeveloperSettings' },
+    { id: 'debug-cmd', label: 'DEBUG CMD', icon: '💻', component: 'DebugCMD' },
+    { id: 'force', label: 'Force', icon: '⚡', component: 'ForceApp' },
+  ];
+
+  const baseDesktopIcons = isDeveloper ? devDesktopIcons : [
     { id: 'file-explorer', label: 'File Explorer', icon: '📁', component: 'FileExplorer' },
     { id: 'minecraft', label: 'Minecraft', icon: '⛏️', component: 'Minecraft' },
     { id: 'subjects', label: 'SUBJECTS', icon: '👤', component: 'Subjects' },
@@ -128,7 +147,7 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
     'podcast-app': { label: 'PodcastHub', icon: '🎧', component: 'PodcastHub' },
   };
 
-  const installedDesktopIcons = installedApps
+  const installedDesktopIcons = isDeveloper ? [] : installedApps
     .map(appId => appIconMap[appId] ? { id: appId, ...appIconMap[appId] } : null)
     .filter(Boolean) as typeof baseDesktopIcons;
 
@@ -143,21 +162,49 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
     openWindow('account-settings', 'Account Settings', '⚙️', 'AccountSettings');
   };
 
-  const handleContextMenu = (e: React.MouseEvent) => {
+  const handleContextMenu = (e: React.MouseEvent, targetId?: string) => {
     e.preventDefault();
-    setContextMenu({ x: e.clientX, y: e.clientY });
+    e.stopPropagation();
+    setContextMenu({ x: e.clientX, y: e.clientY, targetId });
   };
 
   const handleCreateFolder = () => {
-    const name = prompt('Folder name:') || 'New Folder';
-    setDesktopItems(prev => [...prev, { id: `folder-${Date.now()}`, label: name, icon: '📁', type: 'folder' }]);
+    const id = `folder-${Date.now()}`;
+    setDesktopItems(prev => [...prev, { id, label: 'New Folder', icon: '📁', type: 'folder', children: [] }]);
     setContextMenu(null);
+    // Start editing name
+    setEditingItemId(id);
+    setEditingName('New Folder');
   };
 
   const handleCreateTextFile = () => {
-    const name = prompt('File name:') || 'New Document';
-    setDesktopItems(prev => [...prev, { id: `file-${Date.now()}`, label: name + '.txt', icon: '📄', type: 'file' }]);
+    const id = `file-${Date.now()}`;
+    setDesktopItems(prev => [...prev, { id, label: 'New Document.txt', icon: '📄', type: 'file', content: '' }]);
     setContextMenu(null);
+    setEditingItemId(id);
+    setEditingName('New Document.txt');
+  };
+
+  const handleRenameItem = (id: string) => {
+    const item = desktopItems.find(i => i.id === id);
+    if (item) {
+      setEditingItemId(id);
+      setEditingName(item.label);
+    }
+    setContextMenu(null);
+  };
+
+  const handleDeleteItem = (id: string) => {
+    setDesktopItems(prev => prev.filter(i => i.id !== id));
+    setContextMenu(null);
+  };
+
+  const handleFinishRename = () => {
+    if (editingItemId && editingName.trim()) {
+      setDesktopItems(prev => prev.map(i => i.id === editingItemId ? { ...i, label: editingName.trim() } : i));
+    }
+    setEditingItemId(null);
+    setEditingName('');
   };
 
   const handleOpenPersonalize = () => {
@@ -170,7 +217,113 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
     setContextMenu(null);
   };
 
-  const renderWindowContent = (component: string) => {
+  // Handle opening a text file for editing
+  const handleOpenTextFile = (item: DesktopItem) => {
+    setOpenFileContents(prev => ({ ...prev, [item.id]: item.content || '' }));
+    openWindow(item.id, item.label, '📄', 'TextEditor');
+  };
+
+  // Save text file content
+  const handleSaveTextFile = (id: string, content: string) => {
+    setDesktopItems(prev => prev.map(i => i.id === id ? { ...i, content } : i));
+    setOpenFileContents(prev => ({ ...prev, [id]: content }));
+  };
+
+  // Handle opening a folder (show its children)
+  const handleOpenFolder = (item: DesktopItem) => {
+    openWindow(item.id, item.label, '📁', 'DesktopFolder');
+  };
+
+  // Drag and drop
+  const handleDragStart = (e: React.DragEvent, itemId: string) => {
+    setDraggedItemId(itemId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDropOnFolder = (e: React.DragEvent, folderId: string) => {
+    e.preventDefault();
+    if (!draggedItemId || draggedItemId === folderId) return;
+    const draggedItem = desktopItems.find(i => i.id === draggedItemId);
+    if (!draggedItem || draggedItem.type === 'folder') return; // Only files can go into folders
+    
+    setDesktopItems(prev => {
+      const updated = prev.filter(i => i.id !== draggedItemId);
+      return updated.map(i => {
+        if (i.id === folderId && i.type === 'folder') {
+          return { ...i, children: [...(i.children || []), draggedItemId], };
+        }
+        return i;
+      });
+    });
+    // Store the dragged item data for the folder to access
+    const existing = JSON.parse(localStorage.getItem('fbg-folder-files') || '{}');
+    existing[draggedItemId] = draggedItem;
+    localStorage.setItem('fbg-folder-files', JSON.stringify(existing));
+    setDraggedItemId(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const renderWindowContent = (component: string, windowId?: string) => {
+    // Text editor for desktop files
+    if (component === 'TextEditor' && windowId) {
+      const content = openFileContents[windowId] || '';
+      return (
+        <div className="h-full flex flex-col bg-card">
+          <div className="flex items-center gap-2 px-3 py-1.5 border-b border-border bg-muted/50">
+            <button onClick={() => {
+              const textarea = document.getElementById(`textarea-${windowId}`) as HTMLTextAreaElement;
+              if (textarea) handleSaveTextFile(windowId, textarea.value);
+            }}
+              className="px-3 py-1 text-xs bg-primary text-primary-foreground rounded hover:bg-primary/90">
+              💾 Save
+            </button>
+          </div>
+          <textarea
+            id={`textarea-${windowId}`}
+            defaultValue={content}
+            className="flex-1 w-full p-3 bg-card text-foreground font-mono text-sm resize-none outline-none"
+            spellCheck={false}
+            placeholder="Start typing..."
+          />
+        </div>
+      );
+    }
+
+    // Desktop folder viewer
+    if (component === 'DesktopFolder' && windowId) {
+      const folder = desktopItems.find(i => i.id === windowId);
+      const folderFiles = JSON.parse(localStorage.getItem('fbg-folder-files') || '{}');
+      const childItems = (folder?.children || []).map(cid => folderFiles[cid]).filter(Boolean);
+      
+      return (
+        <div className="h-full bg-card p-4 overflow-auto"
+          onDragOver={handleDragOver}
+          onDrop={(e) => handleDropOnFolder(e, windowId)}>
+          {childItems.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+              <span className="text-4xl mb-2">📂</span>
+              <p className="text-sm">This folder is empty</p>
+              <p className="text-xs mt-1">Drag files here to add them</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-4 gap-3">
+              {childItems.map((item: DesktopItem) => (
+                <button key={item.id} onDoubleClick={() => handleOpenTextFile(item)}
+                  className="flex flex-col items-center gap-1 p-3 rounded-lg hover:bg-muted transition-colors">
+                  <span className="text-3xl">{item.icon}</span>
+                  <span className="text-xs text-foreground text-center break-all">{item.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
     switch (component) {
       case 'FileExplorer': return <FileExplorer />;
       case 'Minecraft': return <Minecraft3D />;
@@ -208,6 +361,9 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
       case 'RadioApp': return <RadioApp />;
       case 'PodcastHub': return <PodcastHub />;
       case 'SystemSettings': return <SystemSettings />;
+      case 'ForceApp': return <ForceApp />;
+      case 'DebugCMD': return <DebugCMD />;
+      case 'DeveloperSettings': return <DeveloperSettings />;
       default: return <div className="p-4 text-foreground">Unknown program</div>;
     }
   };
@@ -248,12 +404,12 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
     <div className={`relative min-h-screen overflow-hidden ${getWallpaperClass()}`}>
       {theme === 'matrix' && <MatrixRain />}
       
-      {/* Desktop area - stops before taskbar */}
+      {/* Desktop area */}
       <div
         ref={desktopRef}
-        className="relative z-10 pb-14 overflow-hidden"
+        className="relative z-10 overflow-hidden"
         style={{ height: 'calc(100vh - 48px)' }}
-        onContextMenu={handleContextMenu}
+        onContextMenu={(e) => handleContextMenu(e)}
         onClick={() => setContextMenu(null)}
       >
         <div className="p-4 h-full flex flex-col flex-wrap gap-1 content-start">
@@ -264,18 +420,40 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
           ))}
           {/* User-created desktop items */}
           {desktopItems.map((item) => (
-            <DesktopIcon
+            <div
               key={item.id}
-              icon={item.icon}
-              label={item.label}
-              onClick={() => {
-                if (item.type === 'folder') {
-                  openWindow(item.id, item.label, '📁', 'FileExplorer');
-                } else if (item.type === 'file') {
-                  openWindow(item.id, item.label, '📄', 'NotepadPlus');
-                }
-              }}
-            />
+              draggable={item.type === 'file'}
+              onDragStart={(e) => handleDragStart(e, item.id)}
+              onDragOver={item.type === 'folder' ? handleDragOver : undefined}
+              onDrop={item.type === 'folder' ? (e) => handleDropOnFolder(e, item.id) : undefined}
+              onContextMenu={(e) => handleContextMenu(e, item.id)}
+            >
+              {editingItemId === item.id ? (
+                <div className="flex flex-col items-center gap-1 p-3 w-24">
+                  <span className="text-4xl">{item.icon}</span>
+                  <input
+                    autoFocus
+                    value={editingName}
+                    onChange={e => setEditingName(e.target.value)}
+                    onBlur={handleFinishRename}
+                    onKeyDown={e => e.key === 'Enter' && handleFinishRename()}
+                    className="w-full text-xs text-center bg-primary/20 border border-primary rounded px-1 py-0.5 text-foreground outline-none"
+                  />
+                </div>
+              ) : (
+                <DesktopIcon
+                  icon={item.icon}
+                  label={item.label}
+                  onClick={() => {
+                    if (item.type === 'folder') {
+                      handleOpenFolder(item);
+                    } else if (item.type === 'file') {
+                      handleOpenTextFile(item);
+                    }
+                  }}
+                />
+              )}
+            </div>
           ))}
         </div>
       </div>
@@ -291,23 +469,36 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
             style={{ left: contextMenu.x, top: contextMenu.y }}
             onClick={(e) => e.stopPropagation()}
           >
-            <button onClick={handleCreateFolder} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-2">
-              📁 New Folder
-            </button>
-            <button onClick={handleCreateTextFile} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-2">
-              📄 New Text Document
-            </button>
-            <div className="border-t border-border my-1" />
-            <button onClick={handleOpenPersonalize} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-2">
-              🎨 Personalize
-            </button>
-            <button onClick={handleOpenSettings} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-2">
-              ⚙️ Settings
-            </button>
-            <div className="border-t border-border my-1" />
-            <button onClick={() => { window.location.reload(); }} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-2">
-              🔄 Refresh Desktop
-            </button>
+            {contextMenu.targetId ? (
+              <>
+                <button onClick={() => handleRenameItem(contextMenu.targetId!)} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-2">
+                  ✏️ Rename
+                </button>
+                <button onClick={() => handleDeleteItem(contextMenu.targetId!)} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-2">
+                  🗑️ Delete
+                </button>
+              </>
+            ) : (
+              <>
+                <button onClick={handleCreateFolder} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-2">
+                  📁 New Folder
+                </button>
+                <button onClick={handleCreateTextFile} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-2">
+                  📄 New Text Document
+                </button>
+                <div className="border-t border-border my-1" />
+                <button onClick={handleOpenPersonalize} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-2">
+                  🎨 Personalize
+                </button>
+                <button onClick={handleOpenSettings} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-2">
+                  ⚙️ Settings
+                </button>
+                <div className="border-t border-border my-1" />
+                <button onClick={() => { window.location.reload(); }} className="w-full text-left px-4 py-2 text-sm text-foreground hover:bg-muted transition-colors flex items-center gap-2">
+                  🔄 Refresh Desktop
+                </button>
+              </>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -316,7 +507,7 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
       <AnimatePresence>
         {windows.map(window => (
           <Window key={window.id} window={window} onClose={() => closeWindow(window.id)} onMinimize={() => minimizeWindow(window.id)} onMaximize={() => maximizeWindow(window.id)} onFocus={() => focusWindow(window.id)}>
-            {renderWindowContent(window.component)}
+            {renderWindowContent(window.component, window.id)}
           </Window>
         ))}
       </AnimatePresence>

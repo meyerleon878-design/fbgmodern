@@ -7,7 +7,7 @@ import BIOSScreen from '@/components/BIOSScreen';
 import SetupWizard from '@/components/SetupWizard';
 import { useUser } from '@/contexts/UserContext';
 
-type SystemState = 'boot' | 'bios' | 'setup' | 'login' | 'desktop' | 'shutdown';
+type SystemState = 'boot' | 'bios' | 'setup' | 'setup-dev' | 'login' | 'desktop' | 'shutdown';
 
 const Index = () => {
   const { user, clearUser, isSetupComplete } = useUser();
@@ -27,7 +27,7 @@ const Index = () => {
     return () => window.removeEventListener('keydown', handler);
   }, [systemState]);
 
-  // Boot sequence - check for F2 or go to login/setup
+  // Boot sequence
   useEffect(() => {
     if (systemState !== 'boot') return;
     const timer = setTimeout(() => {
@@ -35,50 +35,38 @@ const Index = () => {
         setSystemState('bios');
       } else if (!isSetupComplete) {
         setSystemState('setup');
+      } else if (user?.isDeveloper) {
+        setSystemState('desktop');
       } else {
         setSystemState('login');
       }
     }, 2000);
     return () => clearTimeout(timer);
-  }, [systemState, f2Pressed, isSetupComplete]);
+  }, [systemState, f2Pressed, isSetupComplete, user]);
 
   const handleFactoryReset = () => {
     clearUser();
     setSystemState('setup');
   };
 
+  const handleDeveloperReset = () => {
+    clearUser();
+    setSystemState('setup-dev');
+  };
+
   // Boot sequence
   if (systemState === 'boot') {
     return (
-      <motion.div
-        className="min-h-screen bg-background flex flex-col items-center justify-center"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
+      <motion.div className="min-h-screen bg-background flex flex-col items-center justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
         <MatrixRain />
         <div className="relative z-10 text-center">
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            className="mb-6"
-          >
+          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.5 }} className="mb-6">
             <div className="text-6xl mb-4">🖥️</div>
             <h1 className="text-3xl font-bold text-foreground text-glow mb-2">FBG_OS</h1>
             <p className="text-muted-foreground">Matrix Edition v11.0</p>
           </motion.div>
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: 200 }}
-            transition={{ duration: 1.5, delay: 0.5 }}
-            className="h-1 bg-primary rounded-full mx-auto"
-          />
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }}
-            className="mt-4 text-sm text-muted-foreground"
-          >
+          <motion.div initial={{ width: 0 }} animate={{ width: 200 }} transition={{ duration: 1.5, delay: 0.5 }} className="h-1 bg-primary rounded-full mx-auto" />
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="mt-4 text-sm text-muted-foreground">
             {f2Pressed ? 'Entering BIOS Setup...' : 'Press F2 repeatedly to enter BIOS'}
           </motion.p>
         </div>
@@ -87,28 +75,23 @@ const Index = () => {
   }
 
   if (systemState === 'bios') {
-    return <BIOSScreen onExit={() => setSystemState(isSetupComplete ? 'login' : 'setup')} onFactoryReset={handleFactoryReset} />;
+    return <BIOSScreen onExit={() => setSystemState(isSetupComplete ? (user?.isDeveloper ? 'desktop' : 'login') : 'setup')} onFactoryReset={handleFactoryReset} onDeveloperReset={handleDeveloperReset} />;
   }
 
   if (systemState === 'setup') {
     return <SetupWizard onComplete={() => setSystemState('login')} />;
   }
 
+  if (systemState === 'setup-dev') {
+    return <SetupWizard onComplete={() => setSystemState('desktop')} developerMode />;
+  }
+
   if (systemState === 'shutdown') {
     return (
-      <motion.div
-        className="min-h-screen bg-background flex flex-col items-center justify-center"
-        initial={{ opacity: 1 }}
-        animate={{ opacity: 0 }}
-        transition={{ duration: 2, delay: 1 }}
-      >
+      <motion.div className="min-h-screen bg-background flex flex-col items-center justify-center" initial={{ opacity: 1 }} animate={{ opacity: 0 }} transition={{ duration: 2, delay: 1 }}>
         <MatrixRain />
         <div className="relative z-10 text-center">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-            className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"
-          />
+          <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }} className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
           <p className="text-foreground text-xl text-glow">Shutting down...</p>
           <p className="text-muted-foreground text-sm mt-2">Goodbye.</p>
         </div>
@@ -125,7 +108,7 @@ const Index = () => {
       )}
       {systemState === 'desktop' && (
         <motion.div key="desktop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-          <Desktop onLogout={() => setSystemState('login')} onShutdown={() => setSystemState('shutdown')} />
+          <Desktop onLogout={() => setSystemState(user?.isDeveloper ? 'boot' : 'login')} onShutdown={() => setSystemState('shutdown')} />
         </motion.div>
       )}
     </AnimatePresence>
