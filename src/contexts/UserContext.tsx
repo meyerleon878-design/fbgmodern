@@ -5,6 +5,7 @@ interface UserProfile {
   password: string;
   displayName: string;
   createdAt: string;
+  isDeveloper?: boolean;
 }
 
 interface UserContextType {
@@ -31,6 +32,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     localStorage.removeItem('fbg-user-profile');
     localStorage.removeItem('fbg-installed-apps');
     localStorage.removeItem('fbg-theme');
+    localStorage.removeItem('fbg-desktop-items');
     setUserState(null);
   };
 

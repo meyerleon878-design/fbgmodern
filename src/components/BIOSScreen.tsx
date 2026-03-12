@@ -1,19 +1,90 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 interface BIOSScreenProps {
   onExit: () => void;
   onFactoryReset: () => void;
+  onDeveloperReset: () => void;
 }
 
-const BIOSScreen = ({ onExit, onFactoryReset }: BIOSScreenProps) => {
+const BOOT_LINES = [
+  'ide1: BM-DMA at 0xc008-0xc00f, BIOS settings: hdc:pio, hdd:pio',
+  'ne2k-pci.c:v1.03 9/22/2003 D. Becker/P. Gortmaker',
+  '  http://www.scyld.com/network/ne2k-pci.html',
+  'hda: QEMU HARDDISK, ATA DISK drive',
+  'ide0 at 0x1f0-0x1f7,0x3f6 on irq 14',
+  'hdc: QEMU CD-ROM, ATAPI CD/DVD-ROM drive',
+  'ide1 at 0x170-0x177,0x376 on irq 15',
+  'ACPI: PCI Interrupt Link [LNKC] enabled at IRQ 10',
+  'ACPI: PCI Interrupt 0000:00:03.0[A] -> Link [LNKC] -> GSI 10 (level, low) -> IRQ 10',
+  '',
+  'eth0: RealTek RTL-8029 found at 0xc100, IRQ 10, 52:54:00:12:34:56.',
+  'hda: max request size: 512KiB',
+  'hda: 180224 sectors (92 MB) w/256KiB Cache, CHS=178/255/63, (U)DMA',
+  'hda: set_multmode: status=0x41 { DriveReady Error }',
+  'hda: set_multmode: error=0x04 { DriveStatusError }',
+  'ide: failed opcode was: 0xef',
+  'hda: cache flushes supported',
+  ' hda: hda1',
+  'hdc: ATAPI 4X CD-ROM drive, 512kB Cache, (U)DMA',
+  'Uniform CD-ROM driver Revision: 3.20',
+  'Done.',
+  'Begin: Mounting root file system... ...',
+  'FBG_OS Developer System Reset v4.2',
+  '========================================',
+  'Initializing developer environment...',
+  'Clearing user partition /dev/sda2...',
+  '[    3.142] Wiping filesystem metadata...',
+  '[    5.891] Reformatting ext4 on /dev/sda2...',
+  '[    8.234] Creating developer filesystem tree...',
+  '[   12.567] Installing developer kernel modules...',
+  '[   15.890] Loading fbg-debug.ko...',
+  '[   18.123] Loading fbg-force.ko...',
+  '[   21.456] Loading fbg-devsettings.ko...',
+  '[   24.789] Configuring developer network stack...',
+  '[   28.012] Setting up debug symbols...',
+  '[   31.345] Installing developer CMD...',
+  '[   34.678] Configuring Force Error Framework...',
+  '[   38.901] Installing BSOD generator module...',
+  '[   42.234] Installing kernel panic simulator...',
+  '[   45.567] Setting up developer settings panel...',
+  '[   48.890] Removing standard applications...',
+  '[   52.123] Stripping user interface components...',
+  '[   55.456] Installing minimal developer shell...',
+  '[   58.789] Configuring developer authentication (none)...',
+  '[   62.012] Setting boot target to developer.target...',
+  '[   65.345] Rebuilding initramfs...',
+  '[   68.678] Updating GRUB configuration...',
+  '[   72.901] Verifying filesystem integrity...',
+  '[   76.234] Running fsck on /dev/sda2... clean.',
+  '[   79.567] Developer environment ready.',
+  '',
+  '========================================',
+  'DEVELOPER SYSTEM RESET COMPLETE',
+  '========================================',
+  '',
+  'Type "fbg reboot" to restart the system.',
+  '',
+];
+
+const BIOSScreen = ({ onExit, onFactoryReset, onDeveloperReset }: BIOSScreenProps) => {
   const [selectedTab, setSelectedTab] = useState(0);
   const [selectedItem, setSelectedItem] = useState(0);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [resetProgress, setResetProgress] = useState(0);
+  // Developer system state
+  const [devPasswordPrompt, setDevPasswordPrompt] = useState(false);
+  const [devPassword, setDevPassword] = useState('');
+  const [devPasswordError, setDevPasswordError] = useState('');
+  const [devScriptRunning, setDevScriptRunning] = useState(false);
+  const [devScriptLines, setDevScriptLines] = useState<string[]>([]);
+  const [devScriptDone, setDevScriptDone] = useState(false);
+  const [devCommand, setDevCommand] = useState('');
+  const devTermRef = useRef<HTMLDivElement>(null);
+  const devInputRef = useRef<HTMLInputElement>(null);
 
-  const tabs = ['Main', 'Advanced', 'Boot', 'Security', 'Factory Reset', 'Exit'];
+  const tabs = ['Main', 'Advanced', 'Boot', 'Security', 'Developer System', 'Factory Reset', 'Exit'];
 
   const tabContents: Record<number, { label: string; value: string; action?: () => void }[]> = {
     0: [
@@ -52,6 +123,19 @@ const BIOSScreen = ({ onExit, onFactoryReset }: BIOSScreenProps) => {
       { label: 'Chassis Intrusion', value: '[Disabled]' },
     ],
     4: [
+      { label: '🛠️ DEVELOPER SYSTEM', value: '' },
+      { label: '', value: '' },
+      { label: '>>> Enter Developer System <<<', value: '[Password Required]', action: () => setDevPasswordPrompt(true) },
+      { label: '', value: '' },
+      { label: 'This will:', value: '' },
+      { label: '  - Reset system to developer mode', value: '' },
+      { label: '  - Remove all standard applications', value: '' },
+      { label: '  - Install: Developer Settings, DEBUG CMD, Force', value: '' },
+      { label: '  - Disable login requirement', value: '' },
+      { label: '', value: '' },
+      { label: '⚠ Admin password required: ****', value: '' },
+    ],
+    5: [
       { label: '⚠ WARNING: This will erase ALL user data!', value: '' },
       { label: '', value: '' },
       { label: '>>> PERFORM FACTORY RESET <<<', value: '[Press Enter]', action: () => setShowResetConfirm(true) },
@@ -62,7 +146,7 @@ const BIOSScreen = ({ onExit, onFactoryReset }: BIOSScreenProps) => {
       { label: '  - Reset all settings to defaults', value: '' },
       { label: '  - Erase all saved files', value: '' },
     ],
-    5: [
+    6: [
       { label: 'Save Changes and Exit', value: '', action: onExit },
       { label: 'Discard Changes and Exit', value: '', action: onExit },
       { label: 'Load Optimized Defaults', value: '' },
@@ -71,8 +155,36 @@ const BIOSScreen = ({ onExit, onFactoryReset }: BIOSScreenProps) => {
 
   const currentItems = tabContents[selectedTab] || [];
 
+  // Dev script animation - 4 minutes
+  useEffect(() => {
+    if (!devScriptRunning) return;
+    let lineIndex = 0;
+    const totalLines = BOOT_LINES.length;
+    const intervalMs = (240 * 1000) / totalLines; // 4 minutes spread across lines
+
+    const interval = setInterval(() => {
+      if (lineIndex < totalLines) {
+        setDevScriptLines(prev => [...prev, BOOT_LINES[lineIndex]]);
+        lineIndex++;
+      } else {
+        clearInterval(interval);
+        setDevScriptDone(true);
+      }
+    }, intervalMs);
+
+    return () => clearInterval(interval);
+  }, [devScriptRunning]);
+
+  useEffect(() => {
+    devTermRef.current?.scrollTo(0, devTermRef.current.scrollHeight);
+  }, [devScriptLines]);
+
+  useEffect(() => {
+    if (devScriptDone) devInputRef.current?.focus();
+  }, [devScriptDone]);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (showResetConfirm || isResetting) return;
+    if (showResetConfirm || isResetting || devPasswordPrompt || devScriptRunning || devScriptDone) return;
     if (e.key === 'ArrowRight') { setSelectedTab(prev => Math.min(prev + 1, tabs.length - 1)); setSelectedItem(0); }
     else if (e.key === 'ArrowLeft') { setSelectedTab(prev => Math.max(prev - 1, 0)); setSelectedItem(0); }
     else if (e.key === 'ArrowDown') { setSelectedItem(prev => Math.min(prev + 1, currentItems.length - 1)); }
@@ -94,6 +206,90 @@ const BIOSScreen = ({ onExit, onFactoryReset }: BIOSScreenProps) => {
       }
     }, 1000);
   };
+
+  const handleDevPasswordSubmit = () => {
+    if (devPassword === '4584') {
+      setDevPasswordPrompt(false);
+      setDevPassword('');
+      setDevPasswordError('');
+      setDevScriptRunning(true);
+      setDevScriptLines([]);
+    } else {
+      setDevPasswordError('Incorrect password');
+    }
+  };
+
+  const handleDevCommand = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (devCommand.trim().toLowerCase() === 'fbg reboot') {
+      onDeveloperReset();
+    } else {
+      setDevScriptLines(prev => [...prev, `$ ${devCommand}`, `bash: ${devCommand}: command not found. Type "fbg reboot" to restart.`]);
+      setDevCommand('');
+    }
+  };
+
+  // Developer password prompt
+  if (devPasswordPrompt) {
+    return (
+      <div className="min-h-screen bg-[#0000aa] text-white font-mono flex items-center justify-center">
+        <div className="bg-[#000055] border-2 border-white p-8 max-w-md w-96">
+          <h2 className="text-[#ffff00] text-lg font-bold mb-4">🔐 Developer System Access</h2>
+          <p className="text-sm mb-4">Enter administrator password to continue:</p>
+          <input
+            type="password"
+            value={devPassword}
+            onChange={e => setDevPassword(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleDevPasswordSubmit()}
+            className="w-full bg-black text-green-400 border border-gray-500 px-3 py-2 font-mono mb-2 outline-none"
+            autoFocus
+            placeholder="Password..."
+          />
+          {devPasswordError && <p className="text-[#ff5555] text-sm mb-2">{devPasswordError}</p>}
+          <div className="flex gap-4 mt-4">
+            <button onClick={handleDevPasswordSubmit} className="px-4 py-2 bg-[#00aa00] text-white border border-white hover:bg-[#00cc00]">
+              Submit
+            </button>
+            <button onClick={() => { setDevPasswordPrompt(false); setDevPassword(''); setDevPasswordError(''); }}
+              className="px-4 py-2 bg-[#aaaaaa] text-[#0000aa] border border-white hover:bg-white">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Developer script running / terminal
+  if (devScriptRunning || devScriptDone) {
+    return (
+      <div className="min-h-screen bg-black text-[#aaaaaa] font-mono p-2 flex flex-col" onClick={() => devInputRef.current?.focus()}>
+        <div ref={devTermRef} className="flex-1 overflow-auto text-xs leading-relaxed">
+          {devScriptLines.map((line, i) => (
+            <div key={i} className={line.startsWith('[') ? 'text-[#00aa00]' : line.startsWith('===') ? 'text-[#ffff00] font-bold' : line.startsWith('FBG_OS') ? 'text-[#55ffff]' : ''}>{line || '\u00A0'}</div>
+          ))}
+          {devScriptDone && (
+            <form onSubmit={handleDevCommand} className="flex mt-1">
+              <span className="text-[#00aa00]">root@fbg-dev:~# </span>
+              <input
+                ref={devInputRef}
+                value={devCommand}
+                onChange={e => setDevCommand(e.target.value)}
+                className="flex-1 bg-transparent outline-none text-white ml-1"
+                autoFocus
+                spellCheck={false}
+              />
+            </form>
+          )}
+        </div>
+        {!devScriptDone && (
+          <div className="text-xs text-[#555555] mt-2">
+            Developer system reset in progress... ({Math.floor((devScriptLines.length / BOOT_LINES.length) * 100)}%)
+          </div>
+        )}
+      </div>
+    );
+  }
 
   if (isResetting) {
     return (
@@ -118,13 +314,14 @@ const BIOSScreen = ({ onExit, onFactoryReset }: BIOSScreenProps) => {
         <p className="text-xs text-gray-300">Copyright (C) 2024 FBG Corporation</p>
       </div>
 
-      <div className="flex border-b border-gray-400 mb-4">
+      <div className="flex border-b border-gray-400 mb-4 flex-wrap">
         {tabs.map((tab, i) => (
           <button
             key={tab}
             onClick={() => { setSelectedTab(i); setSelectedItem(0); }}
-            className={`px-4 py-1 text-sm ${
-              i === 4 ? (selectedTab === i ? 'bg-[#aa0000] text-white font-bold' : 'text-[#ff5555] hover:bg-[#880000]') :
+            className={`px-3 py-1 text-sm ${
+              i === 4 ? (selectedTab === i ? 'bg-[#aa8800] text-white font-bold' : 'text-[#ffaa00] hover:bg-[#886600]') :
+              i === 5 ? (selectedTab === i ? 'bg-[#aa0000] text-white font-bold' : 'text-[#ff5555] hover:bg-[#880000]') :
               selectedTab === i ? 'bg-[#aaaaaa] text-[#0000aa] font-bold' : 'text-white hover:bg-[#000088]'
             }`}
           >
@@ -141,7 +338,7 @@ const BIOSScreen = ({ onExit, onFactoryReset }: BIOSScreenProps) => {
             className={`flex justify-between py-1 px-2 cursor-pointer ${
               selectedItem === i ? 'bg-[#aaaaaa] text-[#0000aa]' : ''
             } ${item.action ? 'text-[#ffff00] font-bold' : ''} ${
-              selectedTab === 4 && i === 0 ? 'text-[#ff5555] font-bold' : ''
+              selectedTab === 5 && i === 0 ? 'text-[#ff5555] font-bold' : ''
             }`}
           >
             <span>{item.label}</span>
