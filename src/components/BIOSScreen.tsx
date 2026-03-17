@@ -244,22 +244,26 @@ const BIOSScreen = ({ onExit, onFactoryReset, onDeveloperReset }: BIOSScreenProp
 
   const currentItems = tabContents[selectedTab] || [];
 
-  // Dev script animation - 4 minutes
+  // Dev script animation - 4 minutes, lines fly by fast
   useEffect(() => {
     if (!devScriptRunning) return;
     let lineIndex = 0;
     const totalLines = BOOT_LINES.length;
-    const intervalMs = (240 * 1000) / totalLines; // 4 minutes spread across lines
+    const intervalMs = (240 * 1000) / totalLines; // 4 minutes spread across all lines
+    // Add multiple lines per tick for speed feel, but keep total time at 4 min
+    const linesPerTick = Math.max(1, Math.floor(totalLines / (240000 / 50))); // ~50ms per tick
+    const tickInterval = (240 * 1000) / Math.ceil(totalLines / linesPerTick);
 
     const interval = setInterval(() => {
       if (lineIndex < totalLines) {
-        setDevScriptLines(prev => [...prev, BOOT_LINES[lineIndex]]);
-        lineIndex++;
+        const batch = BOOT_LINES.slice(lineIndex, lineIndex + linesPerTick);
+        setDevScriptLines(prev => [...prev, ...batch]);
+        lineIndex += linesPerTick;
       } else {
         clearInterval(interval);
         setDevScriptDone(true);
       }
-    }, intervalMs);
+    }, tickInterval);
 
     return () => clearInterval(interval);
   }, [devScriptRunning]);
