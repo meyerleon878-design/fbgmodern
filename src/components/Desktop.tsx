@@ -102,6 +102,11 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
     localStorage.setItem('fbg-desktop-items', JSON.stringify(desktopItems));
   }, [desktopItems]);
 
+  const handleInstallApp = (appId: string) => {
+    setInstalledApps((prev) => [...prev, appId]);
+    logEvent('App installed', { appId });
+  };
+
   useEffect(() => {
     if (!settings.fpsCounter) {
       setFps(0);
