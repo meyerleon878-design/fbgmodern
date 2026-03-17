@@ -4,9 +4,11 @@ import MatrixRain from './MatrixRain';
 import DesktopIcon from './DesktopIcon';
 import Taskbar from './Taskbar';
 import Window from './Window';
+import ForceCrashOverlay from './ForceCrashOverlay';
 import { useWindowManager } from '@/hooks/useWindowManager';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
+import { useDeveloperRuntime } from '@/contexts/DeveloperRuntimeContext';
 import FileExplorer from './programs/FileExplorer';
 import Minecraft3D from './programs/Minecraft3D';
 import Subjects from './programs/Subjects';
@@ -46,6 +48,7 @@ import SystemSettings from './programs/SystemSettings';
 import ForceApp from './programs/ForceApp';
 import DebugCMD from './programs/DebugCMD';
 import DeveloperSettings from './programs/DeveloperSettings';
+import BenchmarkApp from './programs/BenchmarkApp';
 
 interface DesktopProps {
   onLogout: () => void;
@@ -65,6 +68,7 @@ interface DesktopItem {
 const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
   const { theme } = useTheme();
   const { user } = useUser();
+  const { settings, activeError, clearError, logEvent } = useDeveloperRuntime();
   const {
     windows, openWindow, closeWindow, minimizeWindow, maximizeWindow, focusWindow,
   } = useWindowManager();
@@ -84,6 +88,7 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
+  const [fps, setFps] = useState(0);
   const desktopRef = useRef<HTMLDivElement>(null);
 
   // For opening txt files with content
@@ -99,10 +104,37 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
 
   const handleInstallApp = (appId: string) => {
     setInstalledApps((prev) => [...prev, appId]);
+    logEvent('App installed', { appId });
   };
 
+  useEffect(() => {
+    if (!settings.fpsCounter) {
+      setFps(0);
+      return;
+    }
+
+    let frameCount = 0;
+    let lastTime = performance.now();
+    let rafId = 0;
+
+    const measure = (now: number) => {
+      frameCount += 1;
+      if (now - lastTime >= 1000) {
+        setFps(frameCount);
+        frameCount = 0;
+        lastTime = now;
+      }
+      rafId = window.requestAnimationFrame(measure);
+    };
+
+    rafId = window.requestAnimationFrame(measure);
+    return () => window.cancelAnimationFrame(rafId);
+  }, [settings.fpsCounter]);
+
   const devDesktopIcons = [
+    { id: 'file-explorer', label: 'File Explorer', icon: '📁', component: 'FileExplorer' },
     { id: 'dev-settings', label: 'Developer Settings', icon: '🛠️', component: 'DeveloperSettings' },
+    { id: 'benchmark', label: 'Benchmark', icon: '📊', component: 'BenchmarkApp' },
     { id: 'debug-cmd', label: 'DEBUG CMD', icon: '💻', component: 'DebugCMD' },
     { id: 'force', label: 'Force', icon: '⚡', component: 'ForceApp' },
   ];
@@ -154,6 +186,7 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
   const allDesktopIcons = [...baseDesktopIcons, ...installedDesktopIcons];
 
   const handleRestart = () => {
+    logEvent('Desktop restart requested');
     setIsRestarting(true);
     setTimeout(() => window.location.reload(), 2000);
   };
@@ -364,6 +397,7 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
       case 'ForceApp': return <ForceApp />;
       case 'DebugCMD': return <DebugCMD />;
       case 'DeveloperSettings': return <DeveloperSettings />;
+      case 'BenchmarkApp': return <BenchmarkApp />;
       default: return <div className="p-4 text-foreground">Unknown program</div>;
     }
   };
@@ -403,6 +437,17 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
   return (
     <div className={`relative min-h-screen overflow-hidden ${getWallpaperClass()}`}>
       {theme === 'matrix' && <MatrixRain />}
+      {settings.debugOverlay && isDeveloper && (
+        <div className="pointer-events-none fixed right-4 top-4 z-[80] rounded-2xl border border-border bg-card/85 px-4 py-3 text-xs text-foreground shadow-lg backdrop-blur-sm">
+          <div className="font-semibold text-primary">Developer Overlay</div>
+          <div className="mt-2 space-y-1 text-muted-foreground">
+            <p>Mode: <span className="text-foreground">{settings.devMode ? 'Enabled' : 'Disabled'}</span></p>
+            <p>Verbose logs: <span className="text-foreground">{settings.verboseLogging ? 'On' : 'Off'}</span></p>
+            <p>Crash reporting: <span className="text-foreground">{settings.crashReporting ? 'On' : 'Off'}</span></p>
+            {settings.fpsCounter && <p>FPS: <span className="text-foreground">{fps}</span></p>}
+          </div>
+        </div>
+      )}
       
       {/* Desktop area */}
       <div
@@ -415,10 +460,12 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
         <div className="p-4 h-full flex flex-col flex-wrap gap-1 content-start">
           {allDesktopIcons.map((icon, index) => (
             <motion.div key={icon.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
-              <DesktopIcon icon={icon.icon} label={icon.label} onClick={() => openWindow(icon.id, icon.label, icon.icon, icon.component)} />
+              <DesktopIcon icon={icon.icon} label={icon.label} onClick={() => {
+                logEvent('Window opened', { component: icon.component });
+                openWindow(icon.id, icon.label, icon.icon, icon.component);
+              }} />
             </motion.div>
           ))}
-          {/* User-created desktop items */}
           {desktopItems.map((item) => (
             <div
               key={item.id}
@@ -458,7 +505,6 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
         </div>
       </div>
 
-      {/* Context Menu */}
       <AnimatePresence>
         {contextMenu && (
           <motion.div
@@ -503,7 +549,6 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
         )}
       </AnimatePresence>
 
-      {/* Windows */}
       <AnimatePresence>
         {windows.map(window => (
           <Window key={window.id} window={window} onClose={() => closeWindow(window.id)} onMinimize={() => minimizeWindow(window.id)} onMaximize={() => maximizeWindow(window.id)} onFocus={() => focusWindow(window.id)}>
@@ -513,6 +558,7 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
       </AnimatePresence>
 
       <Taskbar windows={windows} onWindowClick={focusWindow} onOpenWindow={openWindow} onLogout={onLogout} onRestart={handleRestart} onShutdown={onShutdown} onOpenAccountSettings={handleOpenAccountSettings} installedApps={installedApps} />
+      <ForceCrashOverlay mode={activeError} onClear={clearError} />
     </div>
   );
 };
