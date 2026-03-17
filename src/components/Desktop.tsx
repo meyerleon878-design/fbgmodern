@@ -181,6 +181,7 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
   const allDesktopIcons = [...baseDesktopIcons, ...installedDesktopIcons];
 
   const handleRestart = () => {
+    logEvent('Desktop restart requested');
     setIsRestarting(true);
     setTimeout(() => window.location.reload(), 2000);
   };
