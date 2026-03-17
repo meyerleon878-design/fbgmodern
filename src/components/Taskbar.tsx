@@ -18,7 +18,6 @@ interface TaskbarProps {
 // Taskbar pinned apps (always visible in taskbar)
 const TASKBAR_PINNED = [
   { id: 'cmd', title: 'CMD', icon: '💻', component: 'CMD', Icon: Terminal },
-  { id: 'lecon-browser', title: 'Lecon Browser', icon: '🌍', component: 'LeconBrowser', Icon: Globe },
 ];
 
 const Taskbar = ({ 

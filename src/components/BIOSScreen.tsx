@@ -245,36 +245,47 @@ const BIOSScreen = ({ onExit, onFactoryReset, onDeveloperReset }: BIOSScreenProp
   // Dev script animation - 4 minutes, lines fly by EXTREMELY fast
   useEffect(() => {
     if (!devScriptRunning) return;
-    let lineIndex = 0;
+
     const totalLines = BOOT_LINES.length;
-    // Tick every 16ms (~60fps) for blazing fast scroll, add huge batches per tick
-    const tickMs = 16;
-    const totalTicks = (240 * 1000) / tickMs; // total ticks in 4 min
-    const linesPerTick = Math.max(1, Math.ceil(totalLines / totalTicks));
+    const startedAt = performance.now();
+    let animationFrame = 0;
 
-    const interval = setInterval(() => {
-      if (lineIndex < totalLines) {
-        const batch = BOOT_LINES.slice(lineIndex, lineIndex + linesPerTick);
-        setDevScriptLines(prev => [...prev, ...batch]);
-        lineIndex += linesPerTick;
-        // Force scroll to bottom every tick
+    const tick = () => {
+      const elapsed = performance.now() - startedAt;
+      const progress = Math.min(elapsed / 240000, 1);
+      const targetLineCount = Math.min(totalLines, Math.floor(progress * totalLines));
+
+      setDevScriptLines((prev) => {
+        if (targetLineCount <= prev.length) return prev;
+        return BOOT_LINES.slice(0, targetLineCount);
+      });
+
+      requestAnimationFrame(() => {
         if (devTermRef.current) {
-          devTermRef.current.scrollTop = devTermRef.current.scrollHeight;
+          devTermRef.current.scrollTo({ top: devTermRef.current.scrollHeight, behavior: 'auto' });
         }
-      } else {
-        clearInterval(interval);
-        setDevScriptDone(true);
-      }
-    }, tickMs);
+      });
 
-    return () => clearInterval(interval);
+      if (progress >= 1) {
+        setDevScriptLines(BOOT_LINES);
+        setDevScriptDone(true);
+        return;
+      }
+
+      animationFrame = window.requestAnimationFrame(tick);
+    };
+
+    animationFrame = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(animationFrame);
   }, [devScriptRunning]);
 
-  // Also scroll on every state update as backup
   useEffect(() => {
-    if (devTermRef.current) {
-      devTermRef.current.scrollTop = devTermRef.current.scrollHeight;
-    }
+    const node = devTermRef.current;
+    if (!node) return;
+
+    requestAnimationFrame(() => {
+      node.scrollTo({ top: node.scrollHeight, behavior: 'auto' });
+    });
   }, [devScriptLines]);
 
   // Auto-reboot when script finishes
