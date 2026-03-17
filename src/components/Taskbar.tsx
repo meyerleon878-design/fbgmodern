@@ -72,6 +72,7 @@ const Taskbar = ({
   }).filter(Boolean) as typeof basePrograms;
 
   const programs = [...basePrograms, ...installedPrograms];
+  const pinnedApps = isDeveloper ? [] : TASKBAR_PINNED;
 
   return (
     <>
