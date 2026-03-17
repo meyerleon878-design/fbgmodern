@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Power, RefreshCw, LogOut, Folder, Gamepad2, Users, Radar, Search, Palette, Store, Globe, MessageCircle, Settings, Terminal } from 'lucide-react';
+import { Power, RefreshCw, LogOut, Folder, Gamepad2, Users, Radar, Search, Palette, Store, Globe, MessageCircle, Settings, Terminal, Bug, Wrench, AlertTriangle } from 'lucide-react';
 import { WindowState } from '@/types/os';
 import { useUser } from '@/contexts/UserContext';
 
