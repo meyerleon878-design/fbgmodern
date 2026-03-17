@@ -95,7 +95,7 @@ const generateBootLines = (): string[] => {
   // Phase 9: Installing tools
   lines.push('', 'Installing developer CMD...');
   lines.push('  Extracting binaries...');
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 200; i++) {
     lines.push(`  Installing /usr/bin/fbg-tool-${i}... OK`);
   }
   lines.push('', 'Configuring Force Error Framework...');
