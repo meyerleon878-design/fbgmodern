@@ -432,6 +432,17 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
   return (
     <div className={`relative min-h-screen overflow-hidden ${getWallpaperClass()}`}>
       {theme === 'matrix' && <MatrixRain />}
+      {settings.debugOverlay && isDeveloper && (
+        <div className="pointer-events-none fixed right-4 top-4 z-[80] rounded-2xl border border-border bg-card/85 px-4 py-3 text-xs text-foreground shadow-lg backdrop-blur-sm">
+          <div className="font-semibold text-primary">Developer Overlay</div>
+          <div className="mt-2 space-y-1 text-muted-foreground">
+            <p>Mode: <span className="text-foreground">{settings.devMode ? 'Enabled' : 'Disabled'}</span></p>
+            <p>Verbose logs: <span className="text-foreground">{settings.verboseLogging ? 'On' : 'Off'}</span></p>
+            <p>Crash reporting: <span className="text-foreground">{settings.crashReporting ? 'On' : 'Off'}</span></p>
+            {settings.fpsCounter && <p>FPS: <span className="text-foreground">{fps}</span></p>}
+          </div>
+        </div>
+      )}
       
       {/* Desktop area */}
       <div
@@ -444,10 +455,12 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
         <div className="p-4 h-full flex flex-col flex-wrap gap-1 content-start">
           {allDesktopIcons.map((icon, index) => (
             <motion.div key={icon.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
-              <DesktopIcon icon={icon.icon} label={icon.label} onClick={() => openWindow(icon.id, icon.label, icon.icon, icon.component)} />
+              <DesktopIcon icon={icon.icon} label={icon.label} onClick={() => {
+                logEvent('Window opened', { component: icon.component });
+                openWindow(icon.id, icon.label, icon.icon, icon.component);
+              }} />
             </motion.div>
           ))}
-          {/* User-created desktop items */}
           {desktopItems.map((item) => (
             <div
               key={item.id}
@@ -487,7 +500,6 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
         </div>
       </div>
 
-      {/* Context Menu */}
       <AnimatePresence>
         {contextMenu && (
           <motion.div
@@ -532,7 +544,6 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
         )}
       </AnimatePresence>
 
-      {/* Windows */}
       <AnimatePresence>
         {windows.map(window => (
           <Window key={window.id} window={window} onClose={() => closeWindow(window.id)} onMinimize={() => minimizeWindow(window.id)} onMaximize={() => maximizeWindow(window.id)} onFocus={() => focusWindow(window.id)}>
@@ -542,6 +553,7 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
       </AnimatePresence>
 
       <Taskbar windows={windows} onWindowClick={focusWindow} onOpenWindow={openWindow} onLogout={onLogout} onRestart={handleRestart} onShutdown={onShutdown} onOpenAccountSettings={handleOpenAccountSettings} installedApps={installedApps} />
+      <ForceCrashOverlay mode={activeError} onClear={clearError} />
     </div>
   );
 };
