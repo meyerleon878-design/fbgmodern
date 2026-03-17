@@ -7,65 +7,154 @@ interface BIOSScreenProps {
   onDeveloperReset: () => void;
 }
 
-const BOOT_LINES = [
-  'ide1: BM-DMA at 0xc008-0xc00f, BIOS settings: hdc:pio, hdd:pio',
-  'ne2k-pci.c:v1.03 9/22/2003 D. Becker/P. Gortmaker',
-  '  http://www.scyld.com/network/ne2k-pci.html',
-  'hda: QEMU HARDDISK, ATA DISK drive',
-  'ide0 at 0x1f0-0x1f7,0x3f6 on irq 14',
-  'hdc: QEMU CD-ROM, ATAPI CD/DVD-ROM drive',
-  'ide1 at 0x170-0x177,0x376 on irq 15',
-  'ACPI: PCI Interrupt Link [LNKC] enabled at IRQ 10',
-  'ACPI: PCI Interrupt 0000:00:03.0[A] -> Link [LNKC] -> GSI 10 (level, low) -> IRQ 10',
-  '',
-  'eth0: RealTek RTL-8029 found at 0xc100, IRQ 10, 52:54:00:12:34:56.',
-  'hda: max request size: 512KiB',
-  'hda: 180224 sectors (92 MB) w/256KiB Cache, CHS=178/255/63, (U)DMA',
-  'hda: set_multmode: status=0x41 { DriveReady Error }',
-  'hda: set_multmode: error=0x04 { DriveStatusError }',
-  'ide: failed opcode was: 0xef',
-  'hda: cache flushes supported',
-  ' hda: hda1',
-  'hdc: ATAPI 4X CD-ROM drive, 512kB Cache, (U)DMA',
-  'Uniform CD-ROM driver Revision: 3.20',
-  'Done.',
-  'Begin: Mounting root file system... ...',
-  'FBG_OS Developer System Reset v4.2',
-  '========================================',
-  'Initializing developer environment...',
-  'Clearing user partition /dev/sda2...',
-  '[    3.142] Wiping filesystem metadata...',
-  '[    5.891] Reformatting ext4 on /dev/sda2...',
-  '[    8.234] Creating developer filesystem tree...',
-  '[   12.567] Installing developer kernel modules...',
-  '[   15.890] Loading fbg-debug.ko...',
-  '[   18.123] Loading fbg-force.ko...',
-  '[   21.456] Loading fbg-devsettings.ko...',
-  '[   24.789] Configuring developer network stack...',
-  '[   28.012] Setting up debug symbols...',
-  '[   31.345] Installing developer CMD...',
-  '[   34.678] Configuring Force Error Framework...',
-  '[   38.901] Installing BSOD generator module...',
-  '[   42.234] Installing kernel panic simulator...',
-  '[   45.567] Setting up developer settings panel...',
-  '[   48.890] Removing standard applications...',
-  '[   52.123] Stripping user interface components...',
-  '[   55.456] Installing minimal developer shell...',
-  '[   58.789] Configuring developer authentication (none)...',
-  '[   62.012] Setting boot target to developer.target...',
-  '[   65.345] Rebuilding initramfs...',
-  '[   68.678] Updating GRUB configuration...',
-  '[   72.901] Verifying filesystem integrity...',
-  '[   76.234] Running fsck on /dev/sda2... clean.',
-  '[   79.567] Developer environment ready.',
-  '',
-  '========================================',
-  'DEVELOPER SYSTEM RESET COMPLETE',
-  '========================================',
-  '',
-  'Type "fbg reboot" to restart the system.',
-  '',
-];
+// Generate massive boot script - runs fast but takes 4 minutes
+const generateBootLines = (): string[] => {
+  const lines: string[] = [];
+  // Phase 1: Hardware init
+  const hwLines = [
+    'ide1: BM-DMA at 0xc008-0xc00f, BIOS settings: hdc:pio, hdd:pio',
+    'ne2k-pci.c:v1.03 9/22/2003 D. Becker/P. Gortmaker',
+    '  http://www.scyld.com/network/ne2k-pci.html',
+    'hda: QEMU HARDDISK, ATA DISK drive',
+    'ide0 at 0x1f0-0x1f7,0x3f6 on irq 14',
+    'hdc: QEMU CD-ROM, ATAPI CD/DVD-ROM drive',
+    'ide1 at 0x170-0x177,0x376 on irq 15',
+    'ACPI: PCI Interrupt Link [LNKC] enabled at IRQ 10',
+    'ACPI: PCI Interrupt 0000:00:03.0[A] -> Link [LNKC] -> GSI 10 (level, low) -> IRQ 10',
+    'eth0: RealTek RTL-8029 found at 0xc100, IRQ 10, 52:54:00:12:34:56.',
+    'hda: max request size: 512KiB',
+    'hda: 180224 sectors (92 MB) w/256KiB Cache, CHS=178/255/63, (U)DMA',
+    'hda: set_multmode: status=0x41 { DriveReady Error }',
+    'hda: set_multmode: error=0x04 { DriveStatusError }',
+    'ide: failed opcode was: 0xef',
+    'hda: cache flushes supported',
+    ' hda: hda1',
+    'hdc: ATAPI 4X CD-ROM drive, 512kB Cache, (U)DMA',
+    'Uniform CD-ROM driver Revision: 3.20',
+    'Done.',
+    'Begin: Mounting root file system... ...',
+  ];
+  lines.push(...hwLines);
+
+  // Phase 2: Header
+  lines.push('', 'FBG_OS Developer System Reset v4.2', '========================================', 'Initializing developer environment...', '');
+
+  // Phase 3: Wiping - generate tons of sector lines
+  lines.push('Clearing user partition /dev/sda2...');
+  for (let i = 0; i < 200; i++) {
+    const sector = Math.floor(Math.random() * 999999);
+    const size = (Math.random() * 64).toFixed(1);
+    lines.push(`[    ${(i * 0.12).toFixed(3)}] Wiping sector ${sector}... ${size}KB cleared`);
+  }
+
+  // Phase 4: Reformatting
+  lines.push('', 'Reformatting ext4 on /dev/sda2...');
+  for (let i = 0; i < 150; i++) {
+    const block = Math.floor(Math.random() * 65535);
+    lines.push(`[   ${(24 + i * 0.08).toFixed(3)}] Writing superblock ${block} to inode table...`);
+  }
+
+  // Phase 5: Creating filesystem tree
+  lines.push('', 'Creating developer filesystem tree...');
+  const dirs = ['/dev', '/proc', '/sys', '/tmp', '/var', '/usr', '/bin', '/sbin', '/etc', '/home', '/opt', '/lib', '/lib64', '/boot', '/mnt', '/srv', '/run'];
+  for (const dir of dirs) {
+    lines.push(`  mkdir -p ${dir}`);
+    for (let j = 0; j < 8; j++) {
+      const sub = `${dir}/${Math.random().toString(36).substring(2, 8)}`;
+      lines.push(`  mkdir -p ${sub}`);
+    }
+  }
+
+  // Phase 6: Installing kernel modules
+  lines.push('', 'Installing developer kernel modules...');
+  const modules = ['fbg-debug', 'fbg-force', 'fbg-devsettings', 'fbg-bsod', 'fbg-panic', 'fbg-gpu-crash', 'fbg-bootloop', 'fbg-memtest', 'fbg-netstack', 'fbg-crypto', 'fbg-vfs', 'fbg-sched', 'fbg-irq', 'fbg-dma', 'fbg-pci', 'fbg-usb', 'fbg-acpi', 'fbg-thermal', 'fbg-power', 'fbg-audit'];
+  for (const mod of modules) {
+    lines.push(`  Loading ${mod}.ko...`);
+    for (let j = 0; j < 6; j++) {
+      const addr = `0x${Math.floor(Math.random() * 0xFFFFFFFF).toString(16).padStart(8, '0')}`;
+      lines.push(`    Mapping symbol table at ${addr}`);
+    }
+    lines.push(`    [OK] ${mod} loaded successfully`);
+  }
+
+  // Phase 7: Network config
+  lines.push('', 'Configuring developer network stack...');
+  for (let i = 0; i < 60; i++) {
+    const ip = `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
+    lines.push(`  Binding interface eth${i % 4} to ${ip}:${1024 + i}`);
+  }
+
+  // Phase 8: Debug symbols
+  lines.push('', 'Setting up debug symbols...');
+  for (let i = 0; i < 120; i++) {
+    const sym = Math.random().toString(36).substring(2, 14);
+    const addr = `0x${Math.floor(Math.random() * 0xFFFFFFFF).toString(16).padStart(8, '0')}`;
+    lines.push(`  [${addr}] __${sym}_debug_${i}`);
+  }
+
+  // Phase 9: Installing tools
+  lines.push('', 'Installing developer CMD...');
+  lines.push('  Extracting binaries...');
+  for (let i = 0; i < 40; i++) {
+    lines.push(`  Installing /usr/bin/fbg-tool-${i}... OK`);
+  }
+  lines.push('', 'Configuring Force Error Framework...');
+  lines.push('  Installing BSOD generator module...');
+  lines.push('  Installing kernel panic simulator...');
+  lines.push('  Installing GPU crash handler...');
+  lines.push('  Installing boot loop trigger...');
+  for (let i = 0; i < 80; i++) {
+    const hash = Math.random().toString(36).substring(2, 10);
+    lines.push(`  Registering error handler ${hash}...`);
+  }
+
+  // Phase 10: Removing apps
+  lines.push('', 'Removing standard applications...');
+  const apps = ['Calculator', 'Calendar', 'Camera', 'Coffee Tracker', 'Compass', 'Ebook Reader', 'Fitness', 'Mail', 'MovieDB', 'Music Player', 'Navigator Maps', 'Notepad+', 'Paint Studio', 'Photo Editor', 'Podcast Hub', 'Radio', 'Retro Arcade', 'Store', 'Subjects', 'Task Runner', 'Terminal Pro', 'Video Player', 'VPN Shield', 'Weather', 'WiFi Analyzer', 'World Clock'];
+  for (const app of apps) {
+    lines.push(`  Removing ${app}...`);
+    for (let j = 0; j < 3; j++) {
+      lines.push(`    Deleting /opt/fbg/apps/${app.toLowerCase().replace(/\s+/g, '-')}/lib${j}.so`);
+    }
+    lines.push(`    [OK] ${app} removed`);
+  }
+
+  // Phase 11: Stripping UI
+  lines.push('', 'Stripping user interface components...');
+  for (let i = 0; i < 80; i++) {
+    const comp = Math.random().toString(36).substring(2, 12);
+    lines.push(`  Removing UI component ${comp}.dll`);
+  }
+
+  // Phase 12: Final config
+  lines.push('', 'Installing minimal developer shell...');
+  lines.push('Configuring developer authentication (none)...');
+  lines.push('Setting boot target to developer.target...');
+  lines.push('', 'Rebuilding initramfs...');
+  for (let i = 0; i < 100; i++) {
+    const pct = ((i / 100) * 100).toFixed(0);
+    lines.push(`  [${pct}%] Packing initramfs image...`);
+  }
+  lines.push('', 'Updating GRUB configuration...');
+  lines.push('  Found FBG_OS Developer on /dev/sda2');
+  lines.push('  Generating grub.cfg...');
+  lines.push('', 'Verifying filesystem integrity...');
+  lines.push('  Running fsck on /dev/sda2...');
+  for (let i = 0; i < 50; i++) {
+    lines.push(`  Pass ${(i % 5) + 1}: Checking inodes ${i * 2048}-${(i + 1) * 2048}`);
+  }
+  lines.push('  /dev/sda2: clean, 11234/65536 files, 28901/131072 blocks');
+  lines.push('');
+  lines.push('========================================');
+  lines.push('DEVELOPER SYSTEM RESET COMPLETE');
+  lines.push('========================================');
+  lines.push('');
+  lines.push('Rebooting system...');
+
+  return lines;
+};
+
+const BOOT_LINES = generateBootLines();
 
 const BIOSScreen = ({ onExit, onFactoryReset, onDeveloperReset }: BIOSScreenProps) => {
   const [selectedTab, setSelectedTab] = useState(0);
