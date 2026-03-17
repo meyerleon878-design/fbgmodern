@@ -242,26 +242,30 @@ const BIOSScreen = ({ onExit, onFactoryReset, onDeveloperReset }: BIOSScreenProp
 
   const currentItems = tabContents[selectedTab] || [];
 
-  // Dev script animation - 4 minutes, lines fly by fast
+  // Dev script animation - 4 minutes, lines fly by EXTREMELY fast
   useEffect(() => {
     if (!devScriptRunning) return;
     let lineIndex = 0;
     const totalLines = BOOT_LINES.length;
-    const intervalMs = (240 * 1000) / totalLines; // 4 minutes spread across all lines
-    // Add multiple lines per tick for speed feel, but keep total time at 4 min
-    const linesPerTick = Math.max(1, Math.floor(totalLines / (240000 / 50))); // ~50ms per tick
-    const tickInterval = (240 * 1000) / Math.ceil(totalLines / linesPerTick);
+    // Tick every 16ms (~60fps) for blazing fast scroll, add huge batches per tick
+    const tickMs = 16;
+    const totalTicks = (240 * 1000) / tickMs; // total ticks in 4 min
+    const linesPerTick = Math.max(1, Math.ceil(totalLines / totalTicks));
 
     const interval = setInterval(() => {
       if (lineIndex < totalLines) {
         const batch = BOOT_LINES.slice(lineIndex, lineIndex + linesPerTick);
         setDevScriptLines(prev => [...prev, ...batch]);
         lineIndex += linesPerTick;
+        // Force scroll to bottom every tick
+        if (devTermRef.current) {
+          devTermRef.current.scrollTop = devTermRef.current.scrollHeight;
+        }
       } else {
         clearInterval(interval);
         setDevScriptDone(true);
       }
-    }, tickInterval);
+    }, tickMs);
 
     return () => clearInterval(interval);
   }, [devScriptRunning]);
