@@ -103,7 +103,7 @@ const generateBootLines = (): string[] => {
   lines.push('  Installing kernel panic simulator...');
   lines.push('  Installing GPU crash handler...');
   lines.push('  Installing boot loop trigger...');
-  for (let i = 0; i < 80; i++) {
+  for (let i = 0; i < 400; i++) {
     const hash = Math.random().toString(36).substring(2, 10);
     lines.push(`  Registering error handler ${hash}...`);
   }
