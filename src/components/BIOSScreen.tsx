@@ -359,17 +359,9 @@ const BIOSScreen = ({ onExit, onFactoryReset, onDeveloperReset }: BIOSScreenProp
             <div key={i} className={line.startsWith('[') ? 'text-[#00aa00]' : line.startsWith('===') ? 'text-[#ffff00] font-bold' : line.startsWith('FBG_OS') ? 'text-[#55ffff]' : ''}>{line || '\u00A0'}</div>
           ))}
           {devScriptDone && (
-            <form onSubmit={handleDevCommand} className="flex mt-1">
-              <span className="text-[#00aa00]">root@fbg-dev:~# </span>
-              <input
-                ref={devInputRef}
-                value={devCommand}
-                onChange={e => setDevCommand(e.target.value)}
-                className="flex-1 bg-transparent outline-none text-white ml-1"
-                autoFocus
-                spellCheck={false}
-              />
-            </form>
+            <div className="flex mt-1 text-[#ffff00] font-bold animate-pulse">
+              Rebooting system...
+            </div>
           )}
         </div>
         {!devScriptDone && (
