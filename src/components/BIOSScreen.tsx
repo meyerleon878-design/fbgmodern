@@ -370,7 +370,7 @@ const BIOSScreen = ({ onExit, onFactoryReset, onDeveloperReset }: BIOSScreenProp
   if (devScriptRunning || devScriptDone) {
     return (
       <div className="min-h-screen bg-black text-[#aaaaaa] font-mono p-2 flex flex-col">
-        <div ref={devTermRef} className="flex-1 overflow-auto text-xs leading-relaxed">
+        <div ref={devTermRef} className="flex-1 overflow-y-auto overflow-x-hidden text-xs leading-relaxed scroll-smooth">
           {devScriptLines.map((line, i) => (
             <div key={i} className={line.startsWith('[') ? 'text-[#00aa00]' : line.startsWith('===') ? 'text-[#ffff00] font-bold' : line.startsWith('FBG_OS') ? 'text-[#55ffff]' : ''}>{line || '\u00A0'}</div>
           ))}
