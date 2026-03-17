@@ -49,9 +49,9 @@ const generateBootLines = (): string[] => {
 
   // Phase 4: Reformatting
   lines.push('', 'Reformatting ext4 on /dev/sda2...');
-  for (let i = 0; i < 150; i++) {
+  for (let i = 0; i < 1500; i++) {
     const block = Math.floor(Math.random() * 65535);
-    lines.push(`[   ${(24 + i * 0.08).toFixed(3)}] Writing superblock ${block} to inode table...`);
+    lines.push(`[   ${(24 + i * 0.008).toFixed(3)}] Writing superblock ${block} to inode table...`);
   }
 
   // Phase 5: Creating filesystem tree
