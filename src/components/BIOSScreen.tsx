@@ -39,12 +39,12 @@ const generateBootLines = (): string[] => {
   // Phase 2: Header
   lines.push('', 'FBG_OS Developer System Reset v4.2', '========================================', 'Initializing developer environment...', '');
 
-  // Phase 3: Wiping - generate tons of sector lines
+  // Phase 3: Wiping - generate massive sector lines
   lines.push('Clearing user partition /dev/sda2...');
-  for (let i = 0; i < 200; i++) {
+  for (let i = 0; i < 2000; i++) {
     const sector = Math.floor(Math.random() * 999999);
     const size = (Math.random() * 64).toFixed(1);
-    lines.push(`[    ${(i * 0.12).toFixed(3)}] Wiping sector ${sector}... ${size}KB cleared`);
+    lines.push(`[    ${(i * 0.012).toFixed(3)}] Wiping sector ${sector}... ${size}KB cleared`);
   }
 
   // Phase 4: Reformatting
