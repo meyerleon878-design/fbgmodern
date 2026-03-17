@@ -392,6 +392,7 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
       case 'ForceApp': return <ForceApp />;
       case 'DebugCMD': return <DebugCMD />;
       case 'DeveloperSettings': return <DeveloperSettings />;
+      case 'BenchmarkApp': return <BenchmarkApp />;
       default: return <div className="p-4 text-foreground">Unknown program</div>;
     }
   };
