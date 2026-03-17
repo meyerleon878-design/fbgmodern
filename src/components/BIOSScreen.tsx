@@ -121,7 +121,7 @@ const generateBootLines = (): string[] => {
 
   // Phase 11: Stripping UI
   lines.push('', 'Stripping user interface components...');
-  for (let i = 0; i < 80; i++) {
+  for (let i = 0; i < 500; i++) {
     const comp = Math.random().toString(36).substring(2, 12);
     lines.push(`  Removing UI component ${comp}.dll`);
   }
