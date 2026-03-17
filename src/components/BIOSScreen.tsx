@@ -59,7 +59,7 @@ const generateBootLines = (): string[] => {
   const dirs = ['/dev', '/proc', '/sys', '/tmp', '/var', '/usr', '/bin', '/sbin', '/etc', '/home', '/opt', '/lib', '/lib64', '/boot', '/mnt', '/srv', '/run'];
   for (const dir of dirs) {
     lines.push(`  mkdir -p ${dir}`);
-    for (let j = 0; j < 8; j++) {
+    for (let j = 0; j < 30; j++) {
       const sub = `${dir}/${Math.random().toString(36).substring(2, 8)}`;
       lines.push(`  mkdir -p ${sub}`);
     }
