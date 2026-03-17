@@ -4,9 +4,11 @@ import MatrixRain from './MatrixRain';
 import DesktopIcon from './DesktopIcon';
 import Taskbar from './Taskbar';
 import Window from './Window';
+import ForceCrashOverlay from './ForceCrashOverlay';
 import { useWindowManager } from '@/hooks/useWindowManager';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useUser } from '@/contexts/UserContext';
+import { useDeveloperRuntime } from '@/contexts/DeveloperRuntimeContext';
 import FileExplorer from './programs/FileExplorer';
 import Minecraft3D from './programs/Minecraft3D';
 import Subjects from './programs/Subjects';
@@ -46,6 +48,7 @@ import SystemSettings from './programs/SystemSettings';
 import ForceApp from './programs/ForceApp';
 import DebugCMD from './programs/DebugCMD';
 import DeveloperSettings from './programs/DeveloperSettings';
+import BenchmarkApp from './programs/BenchmarkApp';
 
 interface DesktopProps {
   onLogout: () => void;
