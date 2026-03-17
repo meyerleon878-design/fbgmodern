@@ -318,15 +318,6 @@ const BIOSScreen = ({ onExit, onFactoryReset, onDeveloperReset }: BIOSScreenProp
     }
   };
 
-  const handleDevCommand = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (devCommand.trim().toLowerCase() === 'fbg reboot') {
-      onDeveloperReset();
-    } else {
-      setDevScriptLines(prev => [...prev, `$ ${devCommand}`, `bash: ${devCommand}: command not found. Type "fbg reboot" to restart.`]);
-      setDevCommand('');
-    }
-  };
 
   // Developer password prompt
   if (devPasswordPrompt) {
