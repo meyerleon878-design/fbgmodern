@@ -70,7 +70,7 @@ const generateBootLines = (): string[] => {
   const modules = ['fbg-debug', 'fbg-force', 'fbg-devsettings', 'fbg-bsod', 'fbg-panic', 'fbg-gpu-crash', 'fbg-bootloop', 'fbg-memtest', 'fbg-netstack', 'fbg-crypto', 'fbg-vfs', 'fbg-sched', 'fbg-irq', 'fbg-dma', 'fbg-pci', 'fbg-usb', 'fbg-acpi', 'fbg-thermal', 'fbg-power', 'fbg-audit'];
   for (const mod of modules) {
     lines.push(`  Loading ${mod}.ko...`);
-    for (let j = 0; j < 6; j++) {
+    for (let j = 0; j < 20; j++) {
       const addr = `0x${Math.floor(Math.random() * 0xFFFFFFFF).toString(16).padStart(8, '0')}`;
       lines.push(`    Mapping symbol table at ${addr}`);
     }
