@@ -79,7 +79,7 @@ const generateBootLines = (): string[] => {
 
   // Phase 7: Network config
   lines.push('', 'Configuring developer network stack...');
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 300; i++) {
     const ip = `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
     lines.push(`  Binding interface eth${i % 4} to ${ip}:${1024 + i}`);
   }
