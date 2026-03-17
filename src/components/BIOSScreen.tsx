@@ -272,9 +272,15 @@ const BIOSScreen = ({ onExit, onFactoryReset, onDeveloperReset }: BIOSScreenProp
     devTermRef.current?.scrollTo(0, devTermRef.current.scrollHeight);
   }, [devScriptLines]);
 
+  // Auto-reboot when script finishes
   useEffect(() => {
-    if (devScriptDone) devInputRef.current?.focus();
-  }, [devScriptDone]);
+    if (devScriptDone) {
+      const timer = setTimeout(() => {
+        onDeveloperReset();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [devScriptDone, onDeveloperReset]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (showResetConfirm || isResetting || devPasswordPrompt || devScriptRunning || devScriptDone) return;
