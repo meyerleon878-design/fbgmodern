@@ -140,7 +140,7 @@ const generateBootLines = (): string[] => {
   lines.push('  Generating grub.cfg...');
   lines.push('', 'Verifying filesystem integrity...');
   lines.push('  Running fsck on /dev/sda2...');
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 300; i++) {
     lines.push(`  Pass ${(i % 5) + 1}: Checking inodes ${i * 2048}-${(i + 1) * 2048}`);
   }
   lines.push('  /dev/sda2: clean, 11234/65536 files, 28901/131072 blocks');
