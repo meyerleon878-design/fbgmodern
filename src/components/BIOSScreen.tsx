@@ -169,9 +169,7 @@ const BIOSScreen = ({ onExit, onFactoryReset, onDeveloperReset }: BIOSScreenProp
   const [devScriptRunning, setDevScriptRunning] = useState(false);
   const [devScriptLines, setDevScriptLines] = useState<string[]>([]);
   const [devScriptDone, setDevScriptDone] = useState(false);
-  const [devCommand, setDevCommand] = useState('');
   const devTermRef = useRef<HTMLDivElement>(null);
-  const devInputRef = useRef<HTMLInputElement>(null);
 
   const tabs = ['Main', 'Advanced', 'Boot', 'Security', 'Developer System', 'Factory Reset', 'Exit'];
 
