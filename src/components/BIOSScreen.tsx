@@ -131,8 +131,8 @@ const generateBootLines = (): string[] => {
   lines.push('Configuring developer authentication (none)...');
   lines.push('Setting boot target to developer.target...');
   lines.push('', 'Rebuilding initramfs...');
-  for (let i = 0; i < 100; i++) {
-    const pct = ((i / 100) * 100).toFixed(0);
+  for (let i = 0; i < 500; i++) {
+    const pct = ((i / 500) * 100).toFixed(0);
     lines.push(`  [${pct}%] Packing initramfs image...`);
   }
   lines.push('', 'Updating GRUB configuration...');
