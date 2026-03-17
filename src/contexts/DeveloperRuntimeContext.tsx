@@ -18,7 +18,7 @@ interface CrashReport {
 
 interface DeveloperRuntimeContextType {
   settings: DeveloperSettingsState;
-  updateSetting: <K extends keyof DeveloperSettingsState>(key: K, value: DeveloperSettingsState[K]) => void;
+  updateSetting: (key: keyof DeveloperSettingsState, value: boolean) => void;
   activeError: ForceErrorMode;
   triggerError: (mode: Exclude<ForceErrorMode, null>) => void;
   clearError: () => void;
@@ -63,7 +63,7 @@ export const DeveloperRuntimeProvider = ({ children }: { children: ReactNode }) 
     console.info(`[Developer] ${message}`, data ?? '');
   }, [settings.verboseLogging]);
 
-  const updateSetting = useCallback(<K extends keyof DeveloperSettingsState>(key: K, value: DeveloperSettingsState[K]) => {
+  const updateSetting = useCallback((key: keyof DeveloperSettingsState, value: boolean) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
   }, []);
 
