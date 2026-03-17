@@ -270,8 +270,11 @@ const BIOSScreen = ({ onExit, onFactoryReset, onDeveloperReset }: BIOSScreenProp
     return () => clearInterval(interval);
   }, [devScriptRunning]);
 
+  // Also scroll on every state update as backup
   useEffect(() => {
-    devTermRef.current?.scrollTo(0, devTermRef.current.scrollHeight);
+    if (devTermRef.current) {
+      devTermRef.current.scrollTop = devTermRef.current.scrollHeight;
+    }
   }, [devScriptLines]);
 
   // Auto-reboot when script finishes
