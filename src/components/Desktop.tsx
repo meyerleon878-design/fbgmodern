@@ -68,6 +68,7 @@ interface DesktopItem {
 const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
   const { theme } = useTheme();
   const { user } = useUser();
+  const { settings, activeError, clearError, logEvent } = useDeveloperRuntime();
   const {
     windows, openWindow, closeWindow, minimizeWindow, maximizeWindow, focusWindow,
   } = useWindowManager();
@@ -87,6 +88,7 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
+  const [fps, setFps] = useState(0);
   const desktopRef = useRef<HTMLDivElement>(null);
 
   // For opening txt files with content
@@ -100,12 +102,34 @@ const Desktop = ({ onLogout, onShutdown }: DesktopProps) => {
     localStorage.setItem('fbg-desktop-items', JSON.stringify(desktopItems));
   }, [desktopItems]);
 
-  const handleInstallApp = (appId: string) => {
-    setInstalledApps((prev) => [...prev, appId]);
-  };
+  useEffect(() => {
+    if (!settings.fpsCounter) {
+      setFps(0);
+      return;
+    }
+
+    let frameCount = 0;
+    let lastTime = performance.now();
+    let rafId = 0;
+
+    const measure = (now: number) => {
+      frameCount += 1;
+      if (now - lastTime >= 1000) {
+        setFps(frameCount);
+        frameCount = 0;
+        lastTime = now;
+      }
+      rafId = window.requestAnimationFrame(measure);
+    };
+
+    rafId = window.requestAnimationFrame(measure);
+    return () => window.cancelAnimationFrame(rafId);
+  }, [settings.fpsCounter]);
 
   const devDesktopIcons = [
+    { id: 'file-explorer', label: 'File Explorer', icon: '📁', component: 'FileExplorer' },
     { id: 'dev-settings', label: 'Developer Settings', icon: '🛠️', component: 'DeveloperSettings' },
+    { id: 'benchmark', label: 'Benchmark', icon: '📊', component: 'BenchmarkApp' },
     { id: 'debug-cmd', label: 'DEBUG CMD', icon: '💻', component: 'DebugCMD' },
     { id: 'force', label: 'Force', icon: '⚡', component: 'ForceApp' },
   ];
