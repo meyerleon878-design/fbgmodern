@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Power, RefreshCw, LogOut, Folder, Gamepad2, Users, Radar, Search, Palette, Store, Globe, MessageCircle, Settings, Terminal } from 'lucide-react';
+import { Power, RefreshCw, LogOut, Folder, Gamepad2, Users, Radar, Search, Palette, Store, Globe, MessageCircle, Settings, Terminal, Bug, Wrench, AlertTriangle } from 'lucide-react';
 import { WindowState } from '@/types/os';
 import { useUser } from '@/contexts/UserContext';
 
@@ -32,6 +32,7 @@ const Taskbar = ({
   installedApps
 }: TaskbarProps) => {
   const { user } = useUser();
+  const isDeveloper = user?.isDeveloper === true;
   const [currentTime, setCurrentTime] = useState(new Date());
   const [startMenuOpen, setStartMenuOpen] = useState(false);
 
@@ -40,7 +41,7 @@ const Taskbar = ({
     return () => clearInterval(timer);
   }, []);
 
-  const basePrograms = [
+  const normalPrograms = [
     { id: 'file-explorer', title: 'File Explorer', icon: '📁', component: 'FileExplorer', Icon: Folder },
     { id: 'minecraft', title: 'Minecraft', icon: '⛏️', component: 'Minecraft', Icon: Gamepad2 },
     { id: 'subjects', title: 'SUBJECTS', icon: '👤', component: 'Subjects', Icon: Users },
@@ -50,8 +51,17 @@ const Taskbar = ({
     { id: 'settings', title: 'Settings', icon: '⚙️', component: 'SystemSettings', Icon: Settings },
   ];
 
-  // Add installed apps to programs list
-  const installedPrograms = installedApps.map((appId) => {
+  const devPrograms = [
+    { id: 'file-explorer', title: 'File Explorer', icon: '📁', component: 'FileExplorer', Icon: Folder },
+    { id: 'debug-cmd', title: 'DEBUG CMD', icon: '🐛', component: 'DebugCMD', Icon: Bug },
+    { id: 'developer-settings', title: 'Dev Settings', icon: '🛠️', component: 'DeveloperSettings', Icon: Wrench },
+    { id: 'force', title: 'Force', icon: '⚡', component: 'ForceApp', Icon: AlertTriangle },
+  ];
+
+  const basePrograms = isDeveloper ? devPrograms : normalPrograms;
+
+  // Add installed apps to programs list (only in normal mode)
+  const installedPrograms = isDeveloper ? [] : installedApps.map((appId) => {
     if (appId === 'rachiro-browser') {
       return { id: 'rachiro-browser', title: 'Rachiro Browser', icon: '🌐', component: 'RachiroBrowser', Icon: Globe };
     }

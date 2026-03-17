@@ -39,19 +39,19 @@ const generateBootLines = (): string[] => {
   // Phase 2: Header
   lines.push('', 'FBG_OS Developer System Reset v4.2', '========================================', 'Initializing developer environment...', '');
 
-  // Phase 3: Wiping - generate tons of sector lines
+  // Phase 3: Wiping - generate massive sector lines
   lines.push('Clearing user partition /dev/sda2...');
-  for (let i = 0; i < 200; i++) {
+  for (let i = 0; i < 2000; i++) {
     const sector = Math.floor(Math.random() * 999999);
     const size = (Math.random() * 64).toFixed(1);
-    lines.push(`[    ${(i * 0.12).toFixed(3)}] Wiping sector ${sector}... ${size}KB cleared`);
+    lines.push(`[    ${(i * 0.012).toFixed(3)}] Wiping sector ${sector}... ${size}KB cleared`);
   }
 
   // Phase 4: Reformatting
   lines.push('', 'Reformatting ext4 on /dev/sda2...');
-  for (let i = 0; i < 150; i++) {
+  for (let i = 0; i < 1500; i++) {
     const block = Math.floor(Math.random() * 65535);
-    lines.push(`[   ${(24 + i * 0.08).toFixed(3)}] Writing superblock ${block} to inode table...`);
+    lines.push(`[   ${(24 + i * 0.008).toFixed(3)}] Writing superblock ${block} to inode table...`);
   }
 
   // Phase 5: Creating filesystem tree
@@ -59,7 +59,7 @@ const generateBootLines = (): string[] => {
   const dirs = ['/dev', '/proc', '/sys', '/tmp', '/var', '/usr', '/bin', '/sbin', '/etc', '/home', '/opt', '/lib', '/lib64', '/boot', '/mnt', '/srv', '/run'];
   for (const dir of dirs) {
     lines.push(`  mkdir -p ${dir}`);
-    for (let j = 0; j < 8; j++) {
+    for (let j = 0; j < 30; j++) {
       const sub = `${dir}/${Math.random().toString(36).substring(2, 8)}`;
       lines.push(`  mkdir -p ${sub}`);
     }
@@ -70,7 +70,7 @@ const generateBootLines = (): string[] => {
   const modules = ['fbg-debug', 'fbg-force', 'fbg-devsettings', 'fbg-bsod', 'fbg-panic', 'fbg-gpu-crash', 'fbg-bootloop', 'fbg-memtest', 'fbg-netstack', 'fbg-crypto', 'fbg-vfs', 'fbg-sched', 'fbg-irq', 'fbg-dma', 'fbg-pci', 'fbg-usb', 'fbg-acpi', 'fbg-thermal', 'fbg-power', 'fbg-audit'];
   for (const mod of modules) {
     lines.push(`  Loading ${mod}.ko...`);
-    for (let j = 0; j < 6; j++) {
+    for (let j = 0; j < 20; j++) {
       const addr = `0x${Math.floor(Math.random() * 0xFFFFFFFF).toString(16).padStart(8, '0')}`;
       lines.push(`    Mapping symbol table at ${addr}`);
     }
@@ -79,14 +79,14 @@ const generateBootLines = (): string[] => {
 
   // Phase 7: Network config
   lines.push('', 'Configuring developer network stack...');
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 300; i++) {
     const ip = `${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`;
     lines.push(`  Binding interface eth${i % 4} to ${ip}:${1024 + i}`);
   }
 
   // Phase 8: Debug symbols
   lines.push('', 'Setting up debug symbols...');
-  for (let i = 0; i < 120; i++) {
+  for (let i = 0; i < 800; i++) {
     const sym = Math.random().toString(36).substring(2, 14);
     const addr = `0x${Math.floor(Math.random() * 0xFFFFFFFF).toString(16).padStart(8, '0')}`;
     lines.push(`  [${addr}] __${sym}_debug_${i}`);
@@ -95,7 +95,7 @@ const generateBootLines = (): string[] => {
   // Phase 9: Installing tools
   lines.push('', 'Installing developer CMD...');
   lines.push('  Extracting binaries...');
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 200; i++) {
     lines.push(`  Installing /usr/bin/fbg-tool-${i}... OK`);
   }
   lines.push('', 'Configuring Force Error Framework...');
@@ -103,7 +103,7 @@ const generateBootLines = (): string[] => {
   lines.push('  Installing kernel panic simulator...');
   lines.push('  Installing GPU crash handler...');
   lines.push('  Installing boot loop trigger...');
-  for (let i = 0; i < 80; i++) {
+  for (let i = 0; i < 400; i++) {
     const hash = Math.random().toString(36).substring(2, 10);
     lines.push(`  Registering error handler ${hash}...`);
   }
@@ -121,7 +121,7 @@ const generateBootLines = (): string[] => {
 
   // Phase 11: Stripping UI
   lines.push('', 'Stripping user interface components...');
-  for (let i = 0; i < 80; i++) {
+  for (let i = 0; i < 500; i++) {
     const comp = Math.random().toString(36).substring(2, 12);
     lines.push(`  Removing UI component ${comp}.dll`);
   }
@@ -131,8 +131,8 @@ const generateBootLines = (): string[] => {
   lines.push('Configuring developer authentication (none)...');
   lines.push('Setting boot target to developer.target...');
   lines.push('', 'Rebuilding initramfs...');
-  for (let i = 0; i < 100; i++) {
-    const pct = ((i / 100) * 100).toFixed(0);
+  for (let i = 0; i < 500; i++) {
+    const pct = ((i / 500) * 100).toFixed(0);
     lines.push(`  [${pct}%] Packing initramfs image...`);
   }
   lines.push('', 'Updating GRUB configuration...');
@@ -140,7 +140,7 @@ const generateBootLines = (): string[] => {
   lines.push('  Generating grub.cfg...');
   lines.push('', 'Verifying filesystem integrity...');
   lines.push('  Running fsck on /dev/sda2...');
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 300; i++) {
     lines.push(`  Pass ${(i % 5) + 1}: Checking inodes ${i * 2048}-${(i + 1) * 2048}`);
   }
   lines.push('  /dev/sda2: clean, 11234/65536 files, 28901/131072 blocks');
@@ -242,32 +242,39 @@ const BIOSScreen = ({ onExit, onFactoryReset, onDeveloperReset }: BIOSScreenProp
 
   const currentItems = tabContents[selectedTab] || [];
 
-  // Dev script animation - 4 minutes, lines fly by fast
+  // Dev script animation - 4 minutes, lines fly by EXTREMELY fast
   useEffect(() => {
     if (!devScriptRunning) return;
     let lineIndex = 0;
     const totalLines = BOOT_LINES.length;
-    const intervalMs = (240 * 1000) / totalLines; // 4 minutes spread across all lines
-    // Add multiple lines per tick for speed feel, but keep total time at 4 min
-    const linesPerTick = Math.max(1, Math.floor(totalLines / (240000 / 50))); // ~50ms per tick
-    const tickInterval = (240 * 1000) / Math.ceil(totalLines / linesPerTick);
+    // Tick every 16ms (~60fps) for blazing fast scroll, add huge batches per tick
+    const tickMs = 16;
+    const totalTicks = (240 * 1000) / tickMs; // total ticks in 4 min
+    const linesPerTick = Math.max(1, Math.ceil(totalLines / totalTicks));
 
     const interval = setInterval(() => {
       if (lineIndex < totalLines) {
         const batch = BOOT_LINES.slice(lineIndex, lineIndex + linesPerTick);
         setDevScriptLines(prev => [...prev, ...batch]);
         lineIndex += linesPerTick;
+        // Force scroll to bottom every tick
+        if (devTermRef.current) {
+          devTermRef.current.scrollTop = devTermRef.current.scrollHeight;
+        }
       } else {
         clearInterval(interval);
         setDevScriptDone(true);
       }
-    }, tickInterval);
+    }, tickMs);
 
     return () => clearInterval(interval);
   }, [devScriptRunning]);
 
+  // Also scroll on every state update as backup
   useEffect(() => {
-    devTermRef.current?.scrollTo(0, devTermRef.current.scrollHeight);
+    if (devTermRef.current) {
+      devTermRef.current.scrollTop = devTermRef.current.scrollHeight;
+    }
   }, [devScriptLines]);
 
   // Auto-reboot when script finishes
