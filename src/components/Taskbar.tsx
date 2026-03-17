@@ -54,6 +54,7 @@ const Taskbar = ({
     { id: 'file-explorer', title: 'File Explorer', icon: '📁', component: 'FileExplorer', Icon: Folder },
     { id: 'debug-cmd', title: 'DEBUG CMD', icon: '🐛', component: 'DebugCMD', Icon: Bug },
     { id: 'developer-settings', title: 'Dev Settings', icon: '🛠️', component: 'DeveloperSettings', Icon: Wrench },
+    { id: 'benchmark', title: 'Benchmark', icon: '📊', component: 'BenchmarkApp', Icon: AlertTriangle },
     { id: 'force', title: 'Force', icon: '⚡', component: 'ForceApp', Icon: AlertTriangle },
   ];
 
