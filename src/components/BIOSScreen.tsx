@@ -86,7 +86,7 @@ const generateBootLines = (): string[] => {
 
   // Phase 8: Debug symbols
   lines.push('', 'Setting up debug symbols...');
-  for (let i = 0; i < 120; i++) {
+  for (let i = 0; i < 800; i++) {
     const sym = Math.random().toString(36).substring(2, 14);
     const addr = `0x${Math.floor(Math.random() * 0xFFFFFFFF).toString(16).padStart(8, '0')}`;
     lines.push(`  [${addr}] __${sym}_debug_${i}`);
